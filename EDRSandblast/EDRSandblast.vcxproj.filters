@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\LSASSProtectionBypass">
+      <UniqueIdentifier>{54b0d87a-da5b-4c62-99f2-30e8848bbfda}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="EDRSandblast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EDRBypass\KernelCallbacks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LSASSProtectionBypass\CredGuard.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LSASSProtectionBypass\RunAsPPL.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\KernelMemoryPrimitives.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\DriverOps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\LSASSDump.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\FileVersion.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\KernelPatternSearch.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\NtoskrnlOffsets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\WdigestOffsets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EDRBypass\ETWThreatIntel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Userland\PEBBrowse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Userland\PEParser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Userland\UserlandHooks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Includes\CredGuard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\RunAsPPL.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\KernelMemoryPrimitives.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EDRSandBlast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\DriverOps.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\LSASSDump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\FileVersion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\KernelPatternSearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\NtoskrnlOffsets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\WdigestOffsets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\KernelCallbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\Globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\ETWThreatIntel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\PEBBrowse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\PEParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\Undoc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\Undoc_64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\UserlandHooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
