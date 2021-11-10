@@ -7,24 +7,24 @@
 #include <stdlib.h>
 #include <Psapi.h>
 #include <Tchar.h>
+#include <time.h>
 #include <tlhelp32.h>
 #include <malloc.h>
 #include <assert.h>
 
-#include "CredGuard.h"
-#include "DriverOps.h"
-#include "ETWThreatIntel.h"
-#include "FileVersion.h"
-#include "KernelCallbacks.h"
-#include "KernelMemoryPrimitives.h"
-#include "KernelPatternSearch.h"
-#include "LSASSDump.h"
-#include "NtoskrnlOffsets.h"
-#include "RunAsPPL.h"
-#include "WdigestOffsets.h"
-#include "UserlandHooks.h"
-
-#define SERVICE_NAME_LENGTH 8
+#include "Includes/Globals.h"
+#include "Includes/CredGuard.h"
+#include "Includes/DriverOps.h"
+#include "Includes/ETWThreatIntel.h"
+#include "Includes/FileVersion.h"
+#include "Includes/KernelCallbacks.h"
+#include "Includes/KernelMemoryPrimitives.h"
+#include "Includes/KernelPatternSearch.h"
+#include "Includes/LSASSDump.h"
+#include "Includes/NtoskrnlOffsets.h"
+#include "Includes/RunAsPPL.h"
+#include "Includes/WdigestOffsets.h"
+#include "Includes/UserlandHooks.h"
 
 typedef enum _START_MODE {
     dump,

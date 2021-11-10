@@ -42,6 +42,7 @@ BOOL ServiceAddEveryoneAccess(SC_HANDLE serviceHandle) {
 }
 
 DWORD ServiceInstall(PCTSTR serviceName, PCTSTR displayName, PCTSTR binPath, DWORD serviceType, DWORD startType, BOOL startIt) {
+    BOOL status = FALSE;
     SC_HANDLE hSC = NULL, hS = NULL;
 
     hSC = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
@@ -177,10 +178,49 @@ BOOL ServiceUninstall(PCTSTR serviceName, DWORD attemptCount) {
 
 */
 
+static TCHAR* randString(TCHAR* str, size_t size) {
+    srand(time(0));
+
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
+    if (size) {
+        for (size_t n = 0; n < size; n++) {
+            int key = rand() % (int)(sizeof charset - 1);
+            str[n] = charset[key];
+        }
+        str[size] = '\0';
+    }
+    return str;
+}
+
+TCHAR* serviceName;
+TCHAR* GetServiceName(void) {
+    if (!serviceName || _tcslen(serviceName) == 0) {
+        serviceName = calloc(SERVICE_NAME_LENGTH, sizeof(TCHAR));
+        randString(serviceName, SERVICE_NAME_LENGTH);
+    }
+    return serviceName;
+}
+
+void SetServiceName(TCHAR *newName, size_t szNewName) {
+    if (serviceName) {
+        free(serviceName);
+    }
+    serviceName = (TCHAR*) calloc(szNewName, sizeof(TCHAR));
+
+    if (!serviceName) {
+        _tprintf(TEXT("[!] Error while attempting to set the service name.\n"));
+        return;
+    }
+
+    _tcscpy_s(serviceName, szNewName, newName);
+}
+
 BOOL InstallVulnerableDriver(TCHAR* driverPath) {
+
+    TCHAR* svcName = GetServiceName();
     const TCHAR svcDesc[] = TEXT("");
 
-    DWORD status = ServiceInstall(gVulnDriverServiceName, svcDesc, driverPath, SERVICE_KERNEL_DRIVER, SERVICE_AUTO_START, TRUE);
+    DWORD status = ServiceInstall(serviceName, svcName, driverPath, SERVICE_KERNEL_DRIVER, SERVICE_AUTO_START, TRUE);
 
     if (status == 0x00000005) {
         _tprintf(TEXT("[!] 0x00000005 - Access Denied when attempting to install the driver - Did you run as administrator?\n"));
@@ -189,8 +229,10 @@ BOOL InstallVulnerableDriver(TCHAR* driverPath) {
     return status == 0x0;
 }
 
-BOOL UninstallVulnerableDriver() {
-    BOOL status = ServiceUninstall(gVulnDriverServiceName, 0);
+BOOL UninstallVulnerableDriver(void) {
+    TCHAR* svcName = GetServiceName();
+
+    BOOL status = ServiceUninstall(svcName, 0);
     
     if (!status) {
         PRINT_ERROR_AUTO(TEXT("ServiceUninstall"));
