@@ -38,6 +38,8 @@ Actions mode:\n\
 \t4               Loads an additional version of ntdll library into memory, and use the (hopefully\n\
 \t                unmonitored) version of NtProtectVirtualMemory present in this library to remove all\n\
 \t                present userland hooks.\n\
+\t5               Allocates a shellcode that uses a direct syscall to call NtProtectVirtualMemory,\n\
+\t                and uses it to remove all detected hooks\n\
 \n\
 Other options:\n\
 \n\
@@ -492,7 +494,7 @@ Other options:\n\
         status = UninstallVulnerableDriver();
         if (status == FALSE) {
             _tprintf(TEXT("[!] An error occured while attempting to uninstall the vulnerable driver\n"));
-            _tprintf(TEXT("[*] The service should be manually deleted: cmd /c sc delete %s\n"), serviceName);
+            _tprintf(TEXT("[*] The service should be manually deleted: cmd /c sc delete %s\n"), GetServiceName());
             lpExitCode = EXIT_FAILURE;
         }
         else {

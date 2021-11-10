@@ -12,7 +12,6 @@
 #include <Tchar.h>
 #include <stdio.h>
 
-#include "Globals.h"
 
 struct RTCORE64_MSR_READ {
     DWORD Register;

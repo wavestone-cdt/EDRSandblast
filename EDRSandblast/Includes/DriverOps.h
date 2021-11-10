@@ -11,8 +11,8 @@
 #include <aclapi.h>
 #include <Tchar.h>
 #include <stdio.h>
+#include <time.h>
 
-#include "Globals.h"
 
 #if !defined(PRINT_ERROR_AUTO)
 #define PRINT_ERROR_AUTO(func) (_tprintf(TEXT("[!] ERROR ") TEXT(__FUNCTION__) TEXT(" ; ") func TEXT(" (0x%08x)\n"), GetLastError()))

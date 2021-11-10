@@ -10,7 +10,6 @@
 #include <Windows.h>
 #include <Tchar.h>
 
-#include "Globals.h"
 #include "FileVersion.h"
 
 enum NtoskrnlOffsetType {

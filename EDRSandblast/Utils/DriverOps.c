@@ -42,7 +42,6 @@ BOOL ServiceAddEveryoneAccess(SC_HANDLE serviceHandle) {
 }
 
 DWORD ServiceInstall(PCTSTR serviceName, PCTSTR displayName, PCTSTR binPath, DWORD serviceType, DWORD startType, BOOL startIt) {
-    BOOL status = FALSE;
     SC_HANDLE hSC = NULL, hS = NULL;
 
     hSC = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
@@ -179,7 +178,7 @@ BOOL ServiceUninstall(PCTSTR serviceName, DWORD attemptCount) {
 */
 
 static TCHAR* randString(TCHAR* str, size_t size) {
-    srand(time(0));
+    srand((unsigned int) time(0));
 
     const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
     if (size) {
@@ -192,7 +191,9 @@ static TCHAR* randString(TCHAR* str, size_t size) {
     return str;
 }
 
+
 TCHAR* serviceName;
+
 TCHAR* GetServiceName(void) {
     if (!serviceName || _tcslen(serviceName) == 0) {
         serviceName = calloc(SERVICE_NAME_LENGTH, sizeof(TCHAR));
@@ -216,11 +217,9 @@ void SetServiceName(TCHAR *newName, size_t szNewName) {
 }
 
 BOOL InstallVulnerableDriver(TCHAR* driverPath) {
-
     TCHAR* svcName = GetServiceName();
-    const TCHAR svcDesc[] = TEXT("");
 
-    DWORD status = ServiceInstall(serviceName, svcName, driverPath, SERVICE_KERNEL_DRIVER, SERVICE_AUTO_START, TRUE);
+    DWORD status = ServiceInstall(svcName, svcName, driverPath, SERVICE_KERNEL_DRIVER, SERVICE_AUTO_START, TRUE);
 
     if (status == 0x00000005) {
         _tprintf(TEXT("[!] 0x00000005 - Access Denied when attempting to install the driver - Did you run as administrator?\n"));

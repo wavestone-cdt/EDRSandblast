@@ -125,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>Includes/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Includes\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,7 +174,6 @@
     <ClInclude Include="EDRSandBlast.h" />
     <ClInclude Include="Includes\ETWThreatIntel.h" />
     <ClInclude Include="Includes\FileVersion.h" />
-    <ClInclude Include="Includes\Globals.h" />
     <ClInclude Include="Includes\KernelCallbacks.h" />
     <ClInclude Include="Includes\KernelMemoryPrimitives.h" />
     <ClInclude Include="Includes\KernelPatternSearch.h" />

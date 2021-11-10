@@ -14,7 +14,7 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
     // Open an handle to our own process.
     HANDLE selfProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, currentProcessID);
     if (verbose) {
-        _tprintf(TEXT("[*] Self process handle: 0x%hx\n"), (USHORT)selfProcessHandle);
+        _tprintf(TEXT("[*] Self process handle: 0x%hx\n"), (USHORT)((ULONG_PTR)selfProcessHandle));
     }
 
 
@@ -72,7 +72,7 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
             _tprintf(TEXT("[*] Handle for the current process (PID: %hd): 0x%hx at 0x%I64x\n"), handleInfo.UniqueProcessId, handleInfo.HandleValue, (DWORD64)handleInfo.Object);
         }
 
-        if (handleInfo.HandleValue == (USHORT)selfProcessHandle) {
+        if (handleInfo.HandleValue == (USHORT)((ULONG_PTR)selfProcessHandle)) {
             _tprintf(TEXT("[+] Found the handle of the current process (PID: %hd): 0x%hx at 0x%I64x\n"), handleInfo.UniqueProcessId, handleInfo.HandleValue, (DWORD64)handleInfo.Object);
             returnAddress = (DWORD64)handleInfo.Object;
         }

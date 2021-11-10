@@ -98,9 +98,6 @@
     <ClInclude Include="Includes\KernelCallbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Includes\Globals.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Includes\ETWThreatIntel.h">
       <Filter>Header Files</Filter>
     </ClInclude>

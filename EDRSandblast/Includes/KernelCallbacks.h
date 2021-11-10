@@ -11,7 +11,6 @@
 #include <Tchar.h>
 #include <stdio.h>
 
-#include "Globals.h"
 #include "DriverOps.h"
 #include "KernelMemoryPrimitives.h"
 #include "NtoskrnlOffsets.h"
