@@ -448,6 +448,27 @@ optional arguments:
   -d, --dowload         Flag to download the PE from Microsoft servers using list of versions from winbindex.m417z.com.
 ```
 
+## Detection
+From the defender (EDR vendor, Microsoft, SOC analysts looking at EDR's telemetry, ...) point of view, multiple indicators can be used to detect or prevent this kind of techniques.
+
+### Driver whitelisting
+Since every action performed by the tool in kernel-mode memory relies on a vulnerable driver to read/write arbitrary content, driver loading events should be heaviliy scrutinized by EDR product (or SOC analysts), and raise an alert at any uncommon driver loading, or even block known vulnerable drivers. This latter approach is even [recommended by Microsoft themselves](https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/microsoft-recommended-driver-block-rules): any HVCI (*Hypervisor-protected code integrity*) enabled Windows device embeds a drivers blocklist, and this will be progressively become a default behaviour on Windows (it already is on Windows 11).
+
+### Kernel-memory integrity checks
+Since an attacker could still use an unknown vulnerable driver to perform the same actions in memory, the EDR driver could periodically check that its kernel callbacks are still registered, directly by inspecting kernel memory (like this tool does), or simply by triggering events (process creation, thread creation, image loading, etc.) and checking the callback functions are indeed called by the executive kernel.
+
+As a side note, this type of data structure could be protected via the recent [Kernel Data Protection (KDP)](https://www.microsoft.com/security/blog/2020/07/08/introducing-kernel-data-protection-a-new-platform-security-technology-for-preventing-data-corruption/) mechanism, which relies on Virtual Based Security, in order to make the kernel callbacks array non-writable without calling the right APIs.
+
+The same logic could apply to sensitive ETW variables such as the `ProviderEnableInfo`, abused by this tool to disable the ETW Threat Intelligence events generation.
+
+### User-mode detection
+The first indicator that a process is actively trying to evade user-land hooking is the file accesses to each DLL corresponding to loaded modules; in a normal execution, a userland process rarely needs to read DLL files outside of a `LoadLibrary` call, especially `ntdll.dll`.
+
+In order to protect API hooking from being bypassed, EDR products could periodically check that hooks are not altered in memory, inside each monitored process. 
+
+Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, etc.) that does not imply the hooks removal, EDR products could potentially rely on kernel callbacks associated to the abused syscalls (ex. `PsCreateProcessNotifyRoutine` for `NtCreateProcess` syscall, `ObRegisterCallbacks` for `NtOpenProcess` syscall, etc.), and perform user-mode call-stack analysis in order to determine is the syscall was triggered from a normal path (`kernel32.dll` -> `ntdll.dll` -> syscall) or an abnormal one (ex. `program.exe` -> direct syscall).
+
+
 ## Acknowledgements
 
 - Kernel callbacks enumeration and removal:
