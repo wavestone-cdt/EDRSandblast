@@ -418,3 +418,15 @@ ntoskrnl_19041-985.exe,cec360,cec160,cebf60,87a,c19d78,20,60
 ntoskrnl_22000-194.exe,cf5f40,cf5d40,cf6140,87a,c15d20,20,60
 ntoskrnl_22000-258.exe,cf5f40,cf5d40,cf6140,87a,c15d20,20,60
 ntoskrnl_22000-282.exe,cf5f00,cf5d00,cf6100,87a,c163d0,20,60
+ntoskrnl_14393-693.exe,33bca0,33baa0,33b8a0,6c2,0,20,50
+ntoskrnl_19041-1.exe,cec0e0,cec2e0,cebee0,87a,c19898,20,60
+ntoskrnl_9600-17031.exe,2e1a40,2e1840,2e1640,67a,0,10,50
+ntoskrnl_9600-19321.exe,2dcb10,2dc910,2dc710,67a,0,20,50
+ntoskrnl_9600-19376.exe,2dbb10,2db910,2db710,67a,0,20,50
+ntoskrnl_9600-19426.exe,2dbb10,2db910,2db710,67a,0,20,50
+ntoskrnl_19041-1348.exe,cec4e0,cec2e0,cec0e0,87a,c197c0,20,60
+ntoskrnl_19041-1387.exe,cec1a0,cec3a0,cebfa0,87a,c197a0,20,60
+ntoskrnl_22000-348.exe,cf5e00,cf6200,cf6000,87a,c15d40,20,60
+ntoskrnl_22000-318.exe,cf5f00,cf5d00,cf6100,87a,c163d0,20,60
+ntoskrnl_14393-4704.exe,339e60,339c60,339a60,6ca,0,20,50
+ntoskrnl_7601-17514.exe,ffffffffffffffff,ffffffffffffffff,ffffffffffffffff,0,0,8,38
