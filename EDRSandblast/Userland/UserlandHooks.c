@@ -432,6 +432,11 @@ PVOID hookResolver(PBYTE hookAddr) {
 	PBYTE destination = hookAddr;
 	BOOL hasFollowedJmp = FALSE;
 	while (TRUE) {
+		MEMORY_BASIC_INFORMATION mbi;
+		VirtualQuery(destination, &mbi, sizeof(mbi));
+		if (mbi.State != MEM_COMMIT) {
+			return NULL;
+		}
 		switch (destination[0]) {
 		case 0xE9:
 		{
