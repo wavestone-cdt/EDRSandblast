@@ -8,7 +8,6 @@ from gzip import decompress
 from json import loads, dumps
 import subprocess
 
-import pefile
 from concurrent.futures import ThreadPoolExecutor
 import threading
 CSVLock = threading.Lock()
@@ -105,11 +104,15 @@ def get_field_offset(symbols_info, field_name):
         return 0
 
 def get_file_version(path):
-    pe = pefile.PE(path)
-    info = pe.VS_FIXEDFILEINFO[0]
-    ms = info.FileVersionMS
-    ls = info.FileVersionLS
-    return (ms >> 16, ms & 0xffff, ls >> 16, ls & 0xffff)
+    # dump version number using r2
+    r = run(["r2", "-c", "iV", "-qq", path], capture_output=True)
+    for line in r.stdout.decode().splitlines():
+        line = line.strip()
+        if line.startswith("FileVersion:"):
+            return [int(frag) for frag in line.split(" ")[-1].split(".")]
+
+    print(f'[!] ERROR : failed to extract version from {path}.')
+    exit(1)
 
 def extractOffsets(input_file, output_file, mode):
     if os.path.isfile(input_file):
@@ -131,17 +134,6 @@ def extractOffsets(input_file, output_file, mode):
             if mode != imageType:
                 print(f"[*] Skipping {input_file} since we are in {mode} mode")
                 return
-            # dump version number
-            """
-            r = run(["r2", "-c", "iV", "-qq", input_file], capture_output=True)
-            for line in r.stdout.decode().splitlines():
-                line = line.strip()
-                if line.startswith("FileVersion:"):
-                    full_version = [int(frag) for frag in line.split(" ")[-1].split(".")]
-                    break
-            else:
-                assert(False)
-            """
             if os.path.sep not in input_file:
                 input_file = "." + os.path.sep + input_file
             full_version = get_file_version(input_file)
