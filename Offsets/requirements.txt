@@ -1,2 +1,2 @@
 requests
-pywin32
+pefile

@@ -1,13 +1,14 @@
 import argparse
 import csv
 import os
+import sys
 
 from requests import get
 from gzip import decompress
 from json import loads, dumps
-from subprocess import run
+import subprocess
 
-import win32api
+import pefile
 from concurrent.futures import ThreadPoolExecutor
 import threading
 CSVLock = threading.Lock()
@@ -15,6 +16,13 @@ CSVLock = threading.Lock()
 machineType = dict(x86=332, x64=34404)
 knownImageVersions = dict(ntoskrnl=list(), wdigest=list())
 extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll")
+
+def run(args, **kargs):
+    """Wrap subprocess.run to works on Windows and Linux"""
+    # Windows needs shell to be True, to locate binary automatically
+    # On Linux, shell needs to be False to manage lists in args
+    shell = sys.platform in ["win32"]
+    return subprocess.run(args, shell=shell, **kargs)
 
 def downloadSpecificFile(entry, pe_basename, pe_ext, knownPEVersions, output_folder):
     pe_name = f'{pe_basename}.{pe_ext}'
@@ -97,17 +105,17 @@ def get_field_offset(symbols_info, field_name):
         return 0
 
 def get_file_version(path):
-    info = win32api.GetFileVersionInfo(path, '\\')
-    ms = info['FileVersionMS']
-    ls = info['FileVersionLS']
-    return (win32api.HIWORD(ms), win32api.LOWORD(ms),
-            win32api.HIWORD(ls), win32api.LOWORD(ls))
+    pe = pefile.PE(path)
+    info = pe.VS_FIXEDFILEINFO[0]
+    ms = info.FileVersionMS
+    ls = info.FileVersionLS
+    return (ms >> 16, ms & 0xffff, ls >> 16, ls & 0xffff)
 
 def extractOffsets(input_file, output_file, mode):
     if os.path.isfile(input_file):
         try:
             # check image type (ntoskrnl, wdigest, etc.)
-            r = run(["r2", "-c", "iE", "-qq", input_file], shell=True, capture_output=True)
+            r = run(["r2", "-c", "iE", "-qq", input_file], capture_output=True)
             for line in r.stdout.decode().splitlines():
                 if "ntoskrnl.exe" in line:
                     imageType = "ntoskrnl"
@@ -125,7 +133,7 @@ def extractOffsets(input_file, output_file, mode):
                 return
             # dump version number
             """
-            r = run(["r2", "-c", "iV", "-qq", input_file], shell=True, capture_output=True)
+            r = run(["r2", "-c", "iV", "-qq", input_file], capture_output=True)
             for line in r.stdout.decode().splitlines():
                 line = line.strip()
                 if line.startswith("FileVersion:"):
@@ -149,9 +157,9 @@ def extractOffsets(input_file, output_file, mode):
             
             print(f'[*] Processing {imageType} version {imageVersion} (file: {input_file})')
             # download the PDB if needed
-            r = run(["r2", "-c", "idpd", "-qq", input_file], shell=True, capture_output=True)
+            r = run(["r2", "-c", "idpd", "-qq", input_file], capture_output=True)
             # dump all symbols
-            r = run(["r2", "-c", "idpi", "-qq", '-B', '0', input_file], shell=True, capture_output=True)
+            r = run(["r2", "-c", "idpi", "-qq", '-B', '0', input_file], capture_output=True)
             all_symbols_info = [line.strip() for line in r.stdout.decode().splitlines()]
 
             if imageType == "ntoskrnl":
@@ -231,12 +239,21 @@ if __name__ == '__main__':
         exit(1)
     
     # check R2 version
-    output = run(["r2", "-V"], shell=True, capture_output=True).stdout.decode()
+    output = run(["r2", "-V"], capture_output=True).stdout.decode()
     ma,me,mi = map(int, output.splitlines()[0].split(" ")[0].split("."))
-    if (ma, me, mi) < (5,4,3):
-        print("WARNING : This script has been tested with radare2 5.4.3 (works) and 4.3.1 (does NOT work)")
+    if (ma, me, mi) < (5,0,0):
+        print("WARNING : This script has been tested with radare2 5.0.0 (works) and 4.3.1 (does NOT work)")
         print(f"You have version {ma}.{me}.{mi}, if is does not work correctly, meaning most of the offsets are not found (i.e. 0), check radare2's 'idpi' command output and modify get_symbol_offset() & get_field_offset() to parse symbols correctly")
         input("Press enter to continue")
+    if sys.platform in ["linux"]:
+        # check that cabextract is insalled
+        try:
+            run(["cabextract", "-v"], check=True, capture_output=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print('[!] ERROR : On Linux systems, radare2 needs cabextract to be installed to work with PDB.')
+            exit(1)
+        if "R2_CURL" not in os.environ:
+            print("WARNING : On Linux systems, radare2 may have trouble to download PDB files. If offsets are reported as 0, export R2_CURL=1 prior to running the script.")
     
     
     # If the output file exists, load the already analyzed image versions.
