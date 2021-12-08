@@ -262,7 +262,7 @@ assembly) in order to call the corresponding OS features without actually touchi
 code in `ntdll.dll`, which might be monitored by the EDR.  This completely bypasses any
 userland hooking done on syscall functions in `ntdll.dll`. 
 
-This nevertheless has some drawbacks. First, this implies been able to know the list of
+This nevertheless has some drawbacks. First, this implies being able to know the list of
 syscall numbers of functions the program needs, which changes for each version of
 Windows. Also, functions that are not technically syscalls
 (e.g. `LoadLibraryX`/`LdrLoadDLL`) could be monitored as well, and cannot simply be
