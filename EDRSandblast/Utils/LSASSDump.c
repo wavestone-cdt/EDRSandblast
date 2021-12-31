@@ -3,7 +3,10 @@
 --- LSASS dump functions.
 
 */
-
+#include <Windows.h>
+#include <TlHelp32.h>
+#include <minidumpapiset.h>
+#include <tchar.h>
 #include "LSASSDump.h"
 
 BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)

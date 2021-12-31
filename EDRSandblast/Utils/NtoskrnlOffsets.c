@@ -4,8 +4,11 @@
 --- Hardcoded patterns, with offsets for 350+ ntoskrnl versions provided in the CSV file.
 
 */
+#include <tchar.h>
+#include <stdio.h>
 
 #include "NtoskrnlOffsets.h"
+#include "FileVersion.h"
 
 union NtoskrnlOffsets ntoskrnlOffsets = { 0 };
 

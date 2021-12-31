@@ -8,11 +8,6 @@
 #pragma once
 
 #include <Windows.h>
-#include <Tchar.h>
-#include <stdio.h>
-
-#include "KernelMemoryPrimitives.h"
-#include "NtoskrnlOffsets.h"
 
 #define DISABLE_PROVIDER 0x0
 #define ENABLE_PROVIDER 0x1

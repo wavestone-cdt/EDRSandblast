@@ -8,12 +8,7 @@
 #pragma once
 
 #include <Windows.h>
-#include <Tchar.h>
-#include <stdio.h>
 
-#include "DriverOps.h"
-#include "KernelMemoryPrimitives.h"
-#include "NtoskrnlOffsets.h"
 
 /*
 * PspCreateProcessNotifyRoutine / PspCreateThreadNotifyRoutine max: 64 callbacks

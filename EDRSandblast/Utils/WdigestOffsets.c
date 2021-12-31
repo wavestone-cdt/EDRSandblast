@@ -6,6 +6,10 @@
 
 */
 
+#include <tchar.h>
+#include <stdio.h>
+
+#include "FileVersion.h"
 #include "WdigestOffsets.h"
 
 union WdigestOffsets wdigestOffsets = { 0 };

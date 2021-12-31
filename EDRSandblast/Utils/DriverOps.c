@@ -4,6 +4,10 @@
 --- Source and credit: https://github.com/gentilkiwi/mimikatz
 
 */
+#include <Windows.h>
+#include <aclapi.h>
+#include <Tchar.h>
+#include <time.h>
 
 #include "DriverOps.h"
 

@@ -1,3 +1,8 @@
+/*
+* Full library whose job is to parse PE structures, on disk, on memory and even in another process memory
+* Among other things, reimplements GetProcAddress and the PE relocation process
+*/
+
 #include "PEParser.h"
 #include <stdio.h>
 #include <assert.h>

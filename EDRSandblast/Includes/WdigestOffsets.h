@@ -9,9 +9,7 @@
 #pragma once
 
 #include <Windows.h>
-#include <Tchar.h>
 
-#include "FileVersion.h"
 
 enum WdigestOffsetType {
     g_fParameter_UseLogonCredential = 0,

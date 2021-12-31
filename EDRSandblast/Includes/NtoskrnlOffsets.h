@@ -8,9 +8,7 @@
 #pragma once
 
 #include <Windows.h>
-#include <Tchar.h>
 
-#include "FileVersion.h"
 
 enum NtoskrnlOffsetType {
     CREATE_PROCESS_ROUTINE = 0,

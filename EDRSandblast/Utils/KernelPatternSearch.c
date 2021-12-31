@@ -4,8 +4,9 @@
 --- Ultimately not used because too unreliable and too prone to BSoD.
 
 */
-
-#include "KernelPatternSearch.h"
+#include <Windows.h>
+#include <Tchar.h>
+#include "KernelMemoryPrimitives.h"
 
 DWORD64 PatternSearchStartingFromAddress(HANDLE Device, DWORD64 startAddress, DWORD bytesToScan, DWORD64 pattern, DWORD64 mask) {
     for (DWORD i = 0; i < bytesToScan; i++) {

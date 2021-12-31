@@ -5,7 +5,12 @@
 
 */
 
+#include <Windows.h>
+#include <Tchar.h>
+
 #include "ETWThreatIntel.h"
+#include "KernelMemoryPrimitives.h"
+#include "NtoskrnlOffsets.h"
 
 DWORD64 GetEtwThreatIntProvRegHandleAddress() {
     if (ntoskrnlOffsets.st.etwThreatIntProvRegHandle == 0x0) {

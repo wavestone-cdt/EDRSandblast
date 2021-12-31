@@ -1,3 +1,7 @@
+/*
+* Functions that browse the PEB structure instead of relying on GetModuleHandle
+*/
+
 #include "Undoc.h"
 #include "PEBBrowse.h"
 #include <stdio.h>

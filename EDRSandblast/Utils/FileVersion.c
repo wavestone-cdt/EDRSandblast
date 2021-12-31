@@ -3,6 +3,8 @@
 --- ntoskrnl.exe / wdigest.dll version compute functions.
 
 */
+#include <Tchar.h>
+#include <stdio.h>
 
 #include "FileVersion.h"
 

@@ -1,3 +1,21 @@
+#include <Windows.h>
+#include <stdio.h>
+#include <Tchar.h>
+
+#ifdef _DEBUG
+#include <assert.h>
+#endif
+
+#include "CredGuard.h"
+#include "DriverOps.h"
+#include "ETWThreatIntel.h"
+#include "KernelCallbacks.h"
+#include "LSASSDump.h"
+#include "NtoskrnlOffsets.h"
+#include "RunAsPPL.h"
+#include "WdigestOffsets.h"
+#include "UserlandHooks.h"
+
 #include "EDRSandBlast.h"
 
 /*

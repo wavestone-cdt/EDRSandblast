@@ -5,7 +5,11 @@
 
 */
 
+#include <Windows.h>
+#include <Tchar.h>
 #include "KernelCallbacks.h"
+#include "KernelMemoryPrimitives.h"
+#include "NtoskrnlOffsets.h"
 
 // List of EDR drivers for which Kernel callbacks will be impacted.
 // Source: https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/allocated-altitudes

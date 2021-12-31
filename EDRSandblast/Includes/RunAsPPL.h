@@ -9,11 +9,7 @@
 #pragma once
 
 #include <Windows.h>
-#include <Tchar.h>
-#include <stdio.h>
 
-#include "KernelMemoryPrimitives.h"
-#include "NtoskrnlOffsets.h"
 
 //extern union NtoskrnlOffsets ntoskrnlOffsets;
 

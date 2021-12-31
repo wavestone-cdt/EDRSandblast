@@ -4,7 +4,10 @@
 --- The code to locate the EPROCESS structure is adapted from:
     http://blog.rewolf.pl/blog/?p=1683
 */
+#include <tchar.h>
 
+#include "KernelMemoryPrimitives.h"
+#include "NtoskrnlOffsets.h"
 #include "RunAsPPL.h"
 
 DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {

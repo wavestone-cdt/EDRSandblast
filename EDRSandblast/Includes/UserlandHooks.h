@@ -1,12 +1,5 @@
 #pragma once
-#include <Windows.h>
-#include "Undoc.h"
 #include "PEParser.h"
-#include "PEBBrowse.h"
-#include <stdio.h>
-#include <TlHelp32.h>
-#include <DbgHelp.h>
-#include <pathcch.h>
 
 typedef struct diff_t {
 	PVOID disk_ptr;

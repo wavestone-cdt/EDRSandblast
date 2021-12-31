@@ -8,9 +8,6 @@
 #pragma once
 
 #include <Windows.h>
-#include <Psapi.h>
-#include <Tchar.h>
-#include <stdio.h>
 
 
 struct RTCORE64_MSR_READ {

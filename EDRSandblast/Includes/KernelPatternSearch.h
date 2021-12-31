@@ -8,10 +8,6 @@
 #pragma once
 
 #include <Windows.h>
-#include <Tchar.h>
-#include <stdio.h>
-
-#include "KernelMemoryPrimitives.h"
 
 DWORD64 PatternSearchStartingFromAddress(HANDLE Device, DWORD64 startAddress, DWORD bytesToScan, DWORD64 pattern, DWORD64 mask);
 

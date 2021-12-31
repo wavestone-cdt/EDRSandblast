@@ -1,7 +1,14 @@
-// FreeHookers.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+/*
+* All the logic that detects, resolves, patch userland hooks and other related structures
+*/
+
+#include <Windows.h>
+#include <PathCch.h>
+#include <stdio.h>
 
 #include "UserlandHooks.h"
+#include "PEBBrowse.h"
+#include "Undoc.h"
 
 #define NT_SUCCESS(StatCode) ((NTSTATUS)(StatCode)>=0)
 

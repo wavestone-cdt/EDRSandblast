@@ -4,6 +4,9 @@
 --- Source and credit: https://github.com/Barakat/CVE-2019-16098/blob/master/CVE-2019-16098.cpp
 
 */
+#include <Windows.h>
+#include <Tchar.h>
+#include <Psapi.h>
 
 #include "KernelMemoryPrimitives.h"
 
