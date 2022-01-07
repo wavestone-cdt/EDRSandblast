@@ -132,7 +132,7 @@ the original DLL on disk and the library residing in memory, that has been poten
 altered by an EDR. To perform this comparison, the following steps are followed by
 EDRSandblast:
 * The list of all loaded DLLs is enumerated thanks to the `InLoadOrderModuleList` located
-  int the `PEB` (to avoid calling any API that could be monitored and suspect)
+  int the `PEB` (to avoid calling any API that could be monitored and suspicious)
 * For each loaded DLL, its content on disk is read and its headers parsed. The
   corresponding library, residing in memory, is also parsed to identify sections, exports,
   etc.
