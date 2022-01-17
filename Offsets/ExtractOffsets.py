@@ -225,13 +225,18 @@ if __name__ == '__main__':
                         help='Flag to download the PE from Microsoft servers using list of versions from winbindex.m417z.com.')
     
     args = parser.parse_args()
-    mode = args.mode
+    mode = args.mode.lower()
     if mode not in knownImageVersions:
         print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: "ntoskrnl" and "wdigest"')      
         exit(1)
     
     # check R2 version
-    output = run(["r2", "-V"], capture_output=True).stdout.decode()
+    r = run(["r2", "-V"], capture_output=True)
+    if r.returncode != 0:
+        print(f"Error: the following error message was printed while running 'r2 -V':")
+        print(r.stderr)
+        exit(r.returncode)
+    output = r.stdout.decode()
     ma,me,mi = map(int, output.splitlines()[0].split(" ")[0].split("."))
     if (ma, me, mi) < (5,0,0):
         print("WARNING : This script has been tested with radare2 5.0.0 (works) and 4.3.1 (does NOT work)")

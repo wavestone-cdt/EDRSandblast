@@ -26,7 +26,7 @@
 
 int _tmain(int argc, TCHAR** argv) {
     // Parse command line arguments and initialize variables to default values if needed.
-    const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard> [--usermode [--unhook-method <N>]] [--kernelmode] [--dont-unload-driver] [--dont-restore-callbacks] [--driver <RTCore64.sys>] [--service <SERVICE_NAME>] [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--add-dll <dll name or path>]* [-o | --dump-output <DUMP_FILE>]");
+    const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe <audit | dump | cmd | credguard> [-h | --help] [-v | --verbose] [--usermode [--unhook-method <N>]] [--kernelmode] [--dont-unload-driver] [--dont-restore-callbacks] [--driver <RTCore64.sys>] [--service <SERVICE_NAME>] [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--add-dll <dll name or path>]* [-o | --dump-output <DUMP_FILE>]");
     const TCHAR extendedUsage[] = TEXT("\n\
 -h | --help             Show this help message and exit.\n\
 -v | --verbose          Enable a more verbose output.\n\
@@ -94,21 +94,7 @@ Other options:\n\
         return EXIT_FAILURE;
     }
 
-    START_MODE startMode;
-    if (_tcsicmp(argv[1], TEXT("dump")) == 0) { startMode = dump; }
-    else if (_tcsicmp(argv[1], TEXT("cmd")) == 0) { startMode = cmd; }
-    else if (_tcsicmp(argv[1], TEXT("credguard")) == 0) { startMode = credguard; }
-    else if (_tcsicmp(argv[1], TEXT("audit")) == 0) { startMode = audit; }
-    else if (_tcsicmp(argv[1], TEXT("-h")) == 0 || _tcsicmp(argv[1], TEXT("--help")) == 0) {
-        _tprintf(TEXT("%s\n"), usage);
-        _tprintf(TEXT("%s\n"), extendedUsage);
-        return EXIT_SUCCESS;
-    }
-    else {
-        _tprintf(TEXT("%s"), usage);
-        return EXIT_FAILURE;
-    }
-
+    START_MODE startMode = none;
     TCHAR driverPath[MAX_PATH * 2] = { 0 };
     TCHAR driverDefaultName[] = TEXT("RTCore64.sys");
     TCHAR ntoskrnlOffsetCSVPath[MAX_PATH * 2] = { 0 };
@@ -127,8 +113,24 @@ Other options:\n\
     hook* hooks = NULL;
 
 
-    for (int i = 2; i < argc; i++) {
-        if (_tcsicmp(argv[i], TEXT("-h")) == 0 || _tcsicmp(argv[i], TEXT("--help")) == 0) {
+    for (int i = 1; i < argc; i++) {
+        if (_tcsicmp(argv[i], TEXT("dump")) == 0) {
+            startMode = dump;
+        }
+        else if (_tcsicmp(argv[1], TEXT("cmd")) == 0) {
+            startMode = cmd;
+        }
+        else if (_tcsicmp(argv[1], TEXT("credguard")) == 0) {
+            startMode = credguard;
+        }
+        else if (_tcsicmp(argv[1], TEXT("audit")) == 0) {
+            startMode = audit;
+        }
+        else if (_tcsicmp(argv[1], TEXT("-h")) == 0 || _tcsicmp(argv[1], TEXT("--help")) == 0) {
+            _tprintf(TEXT("%s\n"), usage);
+            _tprintf(TEXT("%s\n"), extendedUsage);
+            return EXIT_SUCCESS;
+        } else if (_tcsicmp(argv[i], TEXT("-h")) == 0 || _tcsicmp(argv[i], TEXT("--help")) == 0) {
             _tprintf(TEXT("%s\n"), usage);
             _tprintf(TEXT("%s\n"), extendedUsage);
             return EXIT_SUCCESS;
@@ -215,6 +217,10 @@ Other options:\n\
     }
 
     // Command line option consistency checks.
+    if (startMode == none){
+        _tprintf(TEXT("[!] You did not provide an action to perform: audit, dump, credguard or cmd\n"));
+        return EXIT_FAILURE;
+    }
     if (startMode == cmd && !kernelMode) {
         _tprintf(TEXT("'cmd' mode needs kernel-land unhooking to work, please enable --kernelmode\n"));
         return EXIT_FAILURE;
@@ -228,6 +234,9 @@ Other options:\n\
     }
     if (startMode == dump && !kernelMode) {
         _tprintf(TEXT("[!] LSASS dump might fail if RunAsPPL is enabled. Enable --kernelmode to bypass PPL\n"));
+    }
+    if (!userMode && kernelMode) {
+        _tprintf(TEXT("[!] If kernel mode bypass is enabled, it is recommended to enable usermode bypass as well (e.g. to unhook the NtLoadDriver API call)\n"));
     }
 
     BOOL isSafeToExecutePayload = TRUE;

@@ -4,5 +4,6 @@ typedef enum _START_MODE {
     dump,
     cmd,
     credguard,
-    audit
+    audit,
+    none
 } START_MODE;
