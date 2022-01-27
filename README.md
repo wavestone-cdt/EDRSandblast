@@ -280,30 +280,30 @@ For implementation details, check the `unhook()` function's code path when `unho
 
 ### RunAsPPL bypass
 
-The `Local Security Authority (LSA) Protection` mechanism, firstly introduced
+The `Local Security Authority (LSA) Protection` mechanism, first introduced
 in Windows 8.1 and Windows Server 2012 R2, leverage the `Protected Process
 Light (PPL)` technology to restrict access to the `LSASS` process. The `PPL`
 protection regulates and restricts operations, such as memory injection or
-memory dumping of protected processes, even from process holding the
-`SeDebugPrivilege` privilege.
+memory dumping of protected processes, even from a process holding the
+`SeDebugPrivilege` privilege. Under the process protection model, only 
+processes running with higher protection levels can perform operations on
+protected processes.
 
-The protection level of a process is defined in its `EPROCESS` structure, used
-by the Windows kernel to represent processes in memory. The `EPROCESS`
-structure includes a `_PS_PROTECTION` field, defining the protection level of a
-process through its `Type` (`_PS_PROTECTED_TYPE`) and `Signer`
-(`_PS_PROTECTED_SIGNER`) attributes.
+The `_EPROCESS` structure, used by the Windows kernel to represent a process
+in kernel memory, includes a `_PS_PROTECTION` field defining the protection level
+of a process through its `Type` (`_PS_PROTECTED_TYPE`) and `Signer` (`_PS_PROTECTED_SIGNER`)
+attributes.
 
-If no EDR drivers callbacks are detected, the current process is self
-protected as `PsProtectedSignerWinTcb-Light`. This level of protection is
-sufficient to dump the `LSASS` process memory, with `RunAsPPL` enabled, as
-the `PsProtectedSignerWinTcb` signer "dominates" `PsProtectedSignerLsa-Light`
-(and both process are of `PsProtectedTypeProtectedLight` type).
+By writing in kernel memory, the EDRSandblast process is able to upgrade its own 
+protection level to `PsProtectedSignerWinTcb-Light`. This level is sufficient to 
+dump the `LSASS` process memory, since it "dominates" to `PsProtectedSignerLsa-Light`, 
+ the protection level of the `LSASS` process running with the `RunAsPPL` mechanism.
 
 `EDRSandBlast` implements the self protection as follow:
   - open a handle to the current process
   - leak all system handles using `NtQuerySystemInformation` to find the opened
-    handle on the current process (which correspond to the current process'
-    `EPROCESS` structure in kernel memory).
+    handle on the current process, and the address of the current process'
+    `EPROCESS` structure in kernel memory.
   - use the arbitrary read / write vulnerability of the `Micro-Star MSI
     Afterburner` driver to overwrite the `_PS_PROTECTION` field of the current
     process in kernel memory. The offsets of the `_PS_PROTECTION` field
