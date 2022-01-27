@@ -34,7 +34,6 @@ DWORD WINAPI dumpLSASSProcess(void* data) {
     HANDLE hProcessSnap;
     HANDLE hProcess;
     PROCESSENTRY32 pe32;
-    DWORD dwPriorityClass;
 
     TCHAR* outputDump = (TCHAR*)data;
 

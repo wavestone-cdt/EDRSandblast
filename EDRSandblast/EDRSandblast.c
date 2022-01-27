@@ -117,20 +117,16 @@ Other options:\n\
         if (_tcsicmp(argv[i], TEXT("dump")) == 0) {
             startMode = dump;
         }
-        else if (_tcsicmp(argv[1], TEXT("cmd")) == 0) {
+        else if (_tcsicmp(argv[i], TEXT("cmd")) == 0) {
             startMode = cmd;
         }
-        else if (_tcsicmp(argv[1], TEXT("credguard")) == 0) {
+        else if (_tcsicmp(argv[i], TEXT("credguard")) == 0) {
             startMode = credguard;
         }
-        else if (_tcsicmp(argv[1], TEXT("audit")) == 0) {
+        else if (_tcsicmp(argv[i], TEXT("audit")) == 0) {
             startMode = audit;
         }
-        else if (_tcsicmp(argv[1], TEXT("-h")) == 0 || _tcsicmp(argv[1], TEXT("--help")) == 0) {
-            _tprintf(TEXT("%s\n"), usage);
-            _tprintf(TEXT("%s\n"), extendedUsage);
-            return EXIT_SUCCESS;
-        } else if (_tcsicmp(argv[i], TEXT("-h")) == 0 || _tcsicmp(argv[i], TEXT("--help")) == 0) {
+        else if (_tcsicmp(argv[i], TEXT("-h")) == 0 || _tcsicmp(argv[i], TEXT("--help")) == 0) {
             _tprintf(TEXT("%s\n"), usage);
             _tprintf(TEXT("%s\n"), extendedUsage);
             return EXIT_SUCCESS;
