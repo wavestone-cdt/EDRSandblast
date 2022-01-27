@@ -33,12 +33,12 @@ int _tmain(int argc, TCHAR** argv) {
 \n\
 Actions mode:\n\
 \n\
-\taudit           Display the user-land hooks and / or Kernel callbacks with out taking actions.\n\
+\taudit           Display the user-land hooks and / or Kernel callbacks without taking actions.\n\
 \tdump            Dump the LSASS process, by default as 'lsass' in the current directory or at the\n\
 \t                specified file using -o | --output <DUMP_FILE>.\n\
 \tcmd             Open a cmd.exe prompt.\n\
 \tcredguard       Patch the LSASS process' memory to enable Wdigest cleartext passwords caching even if\n\
-\t                Credential Guard is enabled on the host. No kernel-lank actions required.\n\
+\t                Credential Guard is enabled on the host. No kernel-land actions required.\n\
 \n\
 --usermode              Perform user-land operations (DLL unhooking).\n\
 --kernelmode            Perform kernel-land operations (Kernel callbacks removal and ETW TI disabling).\n\

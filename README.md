@@ -1,21 +1,21 @@
 # EDRSandBlast
 
 `EDRSandBlast` is a tool written in `C` that weaponize a vulnerable signed
-driver to bypass `EDR` detections (Kernel callbacks and `ETW TI` provider) and
+driver to bypass EDR detections (Kernel callbacks and `ETW TI` provider) and
 `LSASS` protections. Multiple userland unhooking techniques are also
 implemented to evade userland monitoring.
 
 As of release, combination of userland (`--usermode`) and Kernel-land
-(`--kernelmode`) techniques were used to dump `LSASS` memory under `EDR`
+(`--kernelmode`) techniques were used to dump `LSASS` memory under EDR
 scrutiny, without being blocked nor generating "OS Credential Dumping"-related
 events in the product (cloud) console. The tests were performed on 3 distinct
-`EDR` products and were successful in each case.
+EDR products and were successful in each case.
 
 ## Description
 
 ### EDR bypass through Kernel callbacks removal
 
-`EDR` products use Kernel callbacks on Windows to be notified by the kernel of
+EDR products use Kernel callbacks on Windows to be notified by the kernel of
 system activity, such as process and thread creation and loading of images
 (`exe` / `DLL`).
 
@@ -28,7 +28,7 @@ arrays of routines in Kernel-space:
   - `PspLoadImageNotifyRoutine` for image loading
 
 `EDRSandBlast` enumerates the routines defined in those arrays and remove any
-callback routine linked to a predefined list of `EDR` drivers (more than 1000
+callback routine linked to a predefined list of EDR drivers (more than 1000
 thousands drivers of security products from the
 [allocated filter altitudes](https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/allocated-altitudes)).
 The enumeration and removal are made possible through the exploitation of an
@@ -54,7 +54,7 @@ usages of some Windows API commonly used maliciously. This include the
 used to dump `LSASS` memory) and monitored by the `nt!EtwTiLogReadWriteVm`
 function.
 
-`EDR` products can consume the logs produced by the `ETW TI` provider through
+EDR products can consume the logs produced by the `ETW TI` provider through
 services or processes running as, respectively,
 `SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT` or
 `PS_PROTECTED_ANTIMALWARE_LIGHT`, and associated with an `Early Launch Anti
@@ -69,7 +69,7 @@ blog post for more information on the technique.
 Similarly to the Kernel callbacks removal, the necessary `ntoskrnl.exe` offsets
 (`nt!EtwThreatIntProvRegHandleOffset`, `_ETW_REG_ENTRY`'s `GuidEntry`, and
 `_ETW_GUID_ENTRY`'s `ProviderEnableInfo`) are hardcoded in the
-`NtoskrnlOffsets.csv` file a number of the Windows Kernel versions.
+`NtoskrnlOffsets.csv` file for a number of the Windows Kernel versions.
 
 ### EDR bypass through userland hooking bypass
 #### How userland hooking works
@@ -80,7 +80,7 @@ them to be notified upon each process start.
 
 
 When a process is loaded by Windows, and before it actually starts, the EDR is able to
-inject some custom DLL into the process address space, which contains its monitoing
+inject some custom DLL into the process address space, which contains its monitoring
 logic. While loading, this DLL injects "*hooks*" at the start of every function that is to
 be monitored by the EDR. At runtime, when the monitored functions are called by the
 process under surveillance, these hooks redirect the control flow to some supervision code
@@ -162,7 +162,7 @@ remove a hook, the process can simply:
 * Change back the permissions to RX
 
 This approach is fairly simple, and can be used to remove every detected hook all at
-once. Performed by an offensive tool at its begining, this allows the rest of the code to
+once. Performed by an offensive tool at its beginning, this allows the rest of the code to
 be completely unaware of the hooking mechnanism and perform normally without being
 monitored.
 
@@ -212,7 +212,7 @@ pass. However, it requires to allocate writable then executable memory, which is
 of a shellcode allocation, thus attracting the EDR's scrutiny.
 
 For implementation details, check the `unhook()` function's code path when `unhook_method` is
-`UNHOOK_WITH_INHOUSE_NTPROTECTVIRTUALMEMORY_TRAMPOLINE`. Please remind the technique is
+`UNHOOK_WITH_INHOUSE_NTPROTECTVIRTUALMEMORY_TRAMPOLINE`. Please remember the technique is
 only showcased in our implementation and is, in the end, used to **remove** hooks from
 memory, as every technique bellow.
 
@@ -239,7 +239,7 @@ EDR. For implementation details, check the `unhook()` function's code path when
 
 #### Hook bypass using duplicate DLL
 Another simple method to get access to an unmonitored version of `NtProtectVirtualMemory`
-function is to load a duplicate version of the ntdll.dll library into the process address
+function is to load a duplicate version of the `ntdll.dll` library into the process address
 space. Since two identical DLLs can be loaded in the same process, provided they have
 different names, we can simply copy the legitimate `ntdll.dll` file into another location,
 load it using `LoadLibrary` (or reimplement the loading process), and access the function
@@ -272,7 +272,7 @@ This technique is implemented in EDRSandblast. As previously stated, it is only 
 execute `NtProtectVirtualMemory` safely, and remove all detected hooks. However, in order
 not to rely on hardcoded offsets, a small heuristic is implemented to search for `mov eax,
 imm32` instruction at the start of the `NtProtectVirtualMemory` function and recover the
-syscall number from it if found (else relying on hardcoded offset for known Windows
+syscall number from it if found (otherwise relying on hardcoded offset for known Windows
 versions).
 
 For implementation details, check the `unhook()` function's code path when `unhook_method` is
@@ -293,14 +293,14 @@ structure includes a `_PS_PROTECTION` field, defining the protection level of a
 process through its `Type` (`_PS_PROTECTED_TYPE`) and `Signer`
 (`_PS_PROTECTED_SIGNER`) attributes.
 
-If no `EDR` drivers callbacks are detected, the current process is self
+If no EDR drivers callbacks are detected, the current process is self
 protected as `PsProtectedSignerWinTcb-Light`. This level of protection is
 sufficient to dump the `LSASS` process memory, with `RunAsPPL` enabled, as
 the `PsProtectedSignerWinTcb` signer "dominates" `PsProtectedSignerLsa-Light`
 (and both process are of `PsProtectedTypeProtectedLight` type).
 
 `EDRSandBlast` implements the self protection as follow:
-  - open an handle to the current process
+  - open a handle to the current process
   - leak all system handles using `NtQuerySystemInformation` to find the opened
     handle on the current process (which correspond to the current process'
     `EPROCESS` structure in kernel memory).
@@ -329,7 +329,7 @@ As stated in original research conducted by `N4kedTurtle`: "`Wdigest` can be
 enabled on a system with Credential Guard by patching the values of
 `g_fParameter_useLogonCredential` and `g_IsCredGuardEnabled` in memory".
 The activation of `Wdigest` will result in cleartext credentials being stored
-in `LSASS` memory for any new interactive logons (with out requiring a reboot of
+in `LSASS` memory for any new interactive logons (without requiring a reboot of
 the system). Refer to the
 [original research blog post](https://teamhydra.blog/2020/08/25/bypassing-credential-guard/)
 for more details on this technique.
@@ -344,9 +344,9 @@ The required `ntoskrnl.exe` and `wdigest.dll` offsets (mentioned above) are
 extracted using `r2pipe`, as implemented in the `ExtractOffsets.py` `Python`
 script. In order to support more Windows versions, the `ntoskrnl.exe` and
 `wdigest.dll` referenced by [Winbindex](https://winbindex.m417z.com/) can be
-automatically downloaded (and their offsets extracted). This allow to extract
-offsets from that files which appear in Windows update packages (to date 350+
-`ntoskrnl.exe` and 30+ `wdigest.dll` versions).
+automatically downloaded (and their offsets extracted). This allows to extract
+offsets from nearly all files that were ever published in Windows update packages 
+(to date 350+ `ntoskrnl.exe` and 30+ `wdigest.dll` versions).
 
 ## Usage
 
@@ -370,12 +370,12 @@ Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | cre
 
 Actions mode:
 
-        audit           Display the user-land hooks and / or Kernel callbacks with out taking actions.
+        audit           Display the user-land hooks and / or Kernel callbacks without taking actions.
         dump            Dump the LSASS process, by default as 'lsass' in the current directory or at the
                         specified file using -o | --output <DUMP_FILE>.
         cmd             Open a cmd.exe prompt.
         credguard       Patch the LSASS process' memory to enable Wdigest cleartext passwords caching even if
-                        Credential Guard is enabled on the host. No kernel-lank actions required.
+                        Credential Guard is enabled on the host. No kernel-land actions required.
 
 --usermode              Perform user-land operations (DLL unhooking).
 --kernelmode            Perform kernel-land operations (Kernel callbacks removal and ETW TI disabling).
@@ -474,7 +474,7 @@ The first indicator that a process is actively trying to evade user-land hooking
 
 In order to protect API hooking from being bypassed, EDR products could periodically check that hooks are not altered in memory, inside each monitored process. 
 
-Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, etc.) that does not imply the hooks removal, EDR products could potentially rely on kernel callbacks associated to the abused syscalls (ex. `PsCreateProcessNotifyRoutine` for `NtCreateProcess` syscall, `ObRegisterCallbacks` for `NtOpenProcess` syscall, etc.), and perform user-mode call-stack analysis in order to determine is the syscall was triggered from a normal path (`kernel32.dll` -> `ntdll.dll` -> syscall) or an abnormal one (ex. `program.exe` -> direct syscall).
+Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, etc.) that does not imply the hooks removal, EDR products could potentially rely on kernel callbacks associated to the abused syscalls (ex. `PsCreateProcessNotifyRoutine` for `NtCreateProcess` syscall, `ObRegisterCallbacks` for `NtOpenProcess` syscall, etc.), and perform user-mode call-stack analysis in order to determine if the syscall was triggered from a normal path (`kernel32.dll` -> `ntdll.dll` -> syscall) or an abnormal one (ex. `program.exe` -> direct syscall).
 
 
 ## Acknowledgements
@@ -491,7 +491,7 @@ Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, 
 
 - Driver install / uninstall: https://github.com/gentilkiwi/mimikatz
 
-- Initial list of `EDR` drivers names:
+- Initial list of EDR drivers names:
   https://github.com/SadProcessor/SomeStuff/blob/master/Invoke-EDRCheck.ps1
 
 - Credential Guard bypass by re-enabling `Wdigest` through `LSASS` memory
