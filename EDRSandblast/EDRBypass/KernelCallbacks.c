@@ -484,6 +484,7 @@ TCHAR const* EDR_DRIVERS[] = {
    _T("SE46Filter.sys"),
    // TEHTRI-Security
    _T("egambit.sys"),
+   _T("egfilterk.sys"),
    // Tencent
    _T("TesMon.sys"),
    _T("QQSysMonX64.sys"),
