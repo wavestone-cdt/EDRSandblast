@@ -32,11 +32,11 @@ typedef struct EDRSB_BYPASS_MODE_t {
 } EDRSB_BYPASS_MODE;
 
 typedef enum EDRSB_USERMODE_TECHNIQUE_e {
-    Unhook_with_ntdll_NtProtectVirtualMemory,
-    Copy_ntdll_and_load,
-    Allocate_trampoline,
-    Find_and_use_existing_trampoline,
-    Use_direct_syscall,
+    EDRSB_UMTECH_Unhook_with_ntdll_NtProtectVirtualMemory,
+    EDRSB_UMTECH_Copy_ntdll_and_load,
+    EDRSB_UMTECH_Allocate_trampoline,
+    EDRSB_UMTECH_Find_and_use_existing_trampoline,
+    EDRSB_UMTECH_Use_direct_syscall,
 } EDRSB_USERMODE_TECHNIQUE;
 
 // TODO: update values.
