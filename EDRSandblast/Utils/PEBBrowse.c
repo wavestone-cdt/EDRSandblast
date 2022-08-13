@@ -2,6 +2,7 @@
 * Functions that browse the PEB structure instead of relying on GetModuleHandle
 */
 
+#include "../EDRSandblast.h"
 #include "Undoc.h"
 #include "PEBBrowse.h"
 #include <stdio.h>
@@ -18,7 +19,7 @@ LDR_DATA_TABLE_ENTRY* getModuleEntryFromNameW(const WCHAR* name) {
 		}
 	}
 #ifdef _DEBUG
-	printf("getModuleEntryFromNameW failed to find module\n");
+	printf_or_not("getModuleEntryFromNameW failed to find module\n");
 #endif // _DEBUG
 	return NULL;
 }

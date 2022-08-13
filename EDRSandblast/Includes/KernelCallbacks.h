@@ -17,10 +17,24 @@
 */
 #define PSP_MAX_CALLBACKS 0x40
 
+//TODO : split notify routines & object callbacks in different files, but keep this base to implement more kernel callbacks types (CMRegisterCallbacks, etc)
+enum kernel_callback_type_e {
+    NOTIFY_ROUTINE_CB,
+    OBJECT_CALLBACK
+};
 struct KRNL_CALLBACK {
-    TCHAR const* driver;
-    DWORD64 callback_addr;
-    DWORD64 callback_struct;
+    enum kernel_callback_type_e type;
+    TCHAR const* driver_name;
+    union callback_addr_e {
+        struct notify_routine_t {
+            DWORD64 callback_struct_addr;
+            DWORD64 callback_struct;
+            enum NtoskrnlOffsetType type; //TODO : decorrelate indices in CSV from notify routine types
+        } notify_routine;
+        struct object_callback_t {
+            DWORD64 enable_addr;
+        } object_callback;
+    } addresses;
     DWORD64 callback_func;
     BOOL removed;
 };
@@ -30,11 +44,10 @@ struct FOUND_EDR_CALLBACKS {
     struct KRNL_CALLBACK EDR_CALLBACKS[256];
 };
 
-TCHAR const* EDR_DRIVERS[];
+
 
 BOOL isDriverEDR(TCHAR* driver);
-
-void RestoreEDRCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers);
+void RestoreEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers);
 
 /*
 
@@ -78,6 +91,6 @@ void RemoveEDRImageNotifyCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers, BOOL 
 
 */
 
-void EnumAllEDRKernelCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers, BOOL verbose);
+BOOL EnumEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers, BOOL verbose);
 
-void RemoveAllEDRKernelCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers, BOOL verbose);
+void RemoveEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers);

@@ -112,7 +112,7 @@ def get_file_version(path):
             return [int(frag) for frag in line.split(" ")[-1].split(".")]
 
     print(f'[!] ERROR : failed to extract version from {path}.')
-    exit(1)
+    raise RuntimeError("get_file_version error")
 
 def extractOffsets(input_file, output_file, mode):
     if os.path.isfile(input_file):
@@ -161,7 +161,10 @@ def extractOffsets(input_file, output_file, mode):
                             ('_PS_PROTECTION Protection', get_field_offset),
                             ("EtwThreatIntProvRegHandle", get_symbol_offset),
                             ('_ETW_GUID_ENTRY* GuidEntry', get_field_offset),
-                            ('_TRACE_ENABLE_INFO ProviderEnableInfo', get_field_offset)]
+                            ('_TRACE_ENABLE_INFO ProviderEnableInfo', get_field_offset),
+                            ("PsProcessType", get_symbol_offset),
+                            ("PsThreadType", get_symbol_offset),
+                            ('struct _LIST_ENTRY CallbackList', get_field_offset)]
             elif imageType == "wdigest":
                 symbols = [
                 ("g_fParameter_UseLogonCredential",get_symbol_offset), 
@@ -263,7 +266,7 @@ if __name__ == '__main__':
     else:
         with open(args.output, 'w') as output:
             if mode == "ntoskrnl":
-                output.write('ntoskrnlVersion,PspCreateProcessNotifyRoutineOffset,PspCreateThreadNotifyRoutineOffset,PspLoadImageNotifyRoutineOffset,_PS_PROTECTIONOffset,EtwThreatIntProvRegHandleOffset,EtwRegEntry_GuidEntryOffset,EtwGuidEntry_ProviderEnableInfoOffset\n')
+                output.write('ntoskrnlVersion,PspCreateProcessNotifyRoutineOffset,PspCreateThreadNotifyRoutineOffset,PspLoadImageNotifyRoutineOffset,_PS_PROTECTIONOffset,EtwThreatIntProvRegHandleOffset,EtwRegEntry_GuidEntryOffset,EtwGuidEntry_ProviderEnableInfoOffset,PsProcessType,PsThreadType,CallbackList\n')
             elif mode == "wdigest":
                 output.write('wdigestVersion,g_fParameter_UseLogonCredentialOffset,g_IsCredGuardEnabledOffset\n')
             else:

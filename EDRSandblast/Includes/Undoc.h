@@ -148,6 +148,7 @@
 #ifdef _MSC_VER
 //when compiling as C
 #pragma warning (disable:4214) //Warning Level 4: C4214: nonstandard extension used : bit field types other than int
+#pragma warning (disable:4201) //Warning Level 4: C4201: nonstandard extension used: nameless struct/union
 
 //"#pragma pack(1)" not needed as Microsoft has designed all structure members to be on natural boundaries
 
@@ -276,9 +277,15 @@ struct RTL_CRITICAL_SECTION
 
 typedef struct _CLIENT_ID
 {
-	DWORD  ProcessId;
-	DWORD  ThreadId;
-} CLIENT_ID;
+	HANDLE  ProcessId;
+	HANDLE  ThreadId;
+} CLIENT_ID, * PCLIENT_ID;
+
+//typedef struct _CLIENT_ID
+//{
+//	HANDLE UniqueProcess;
+//	HANDLE UniqueThread;
+//} CLIENT_ID, * PCLIENT_ID;
 
 /*
 typedef struct _PROCESSOR_NUMBER
@@ -293,16 +300,15 @@ typedef struct _STRING
 {
 	WORD    Length;
 	WORD    MaximumLength;
-	CHAR* Buffer;
+	CHAR*   Buffer;
 } STRING;
 
 typedef struct _UNICODE_STRING
 {
 	WORD    Length;
 	WORD    MaximumLength;
-	WCHAR* Buffer;
-} UNICODE_STRING;
-
+	WCHAR*  Buffer;
+} UNICODE_STRING, * PUNICODE_STRING;
 
 //
 // Exception-specific structures and definitions
@@ -469,7 +475,7 @@ typedef struct _PEB_LDR_DATA
 	LIST_ENTRY     InMemoryOrderModuleList;            //0x14
 	LIST_ENTRY     InInitializationOrderModuleList;    //0x1C
 	void* EntryInProgress;                    //0x24
-} PEB_LDR_DATA;
+} PEB_LDR_DATA, * PPEB_LDR_DATA;
 
 typedef struct PEB_FREE_BLOCK PEB_FREE_BLOCK;
 struct PEB_FREE_BLOCK
@@ -509,7 +515,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 	UNICODE_STRING          ShellInfo;                     //0x80
 	UNICODE_STRING          RuntimeData;                   //0x88
 	RTL_DRIVE_LETTER_CURDIR DLCurrentDirectory[0x20];      //0x90
-} RTL_USER_PROCESS_PARAMETERS;
+} RTL_USER_PROCESS_PARAMETERS, * PRTL_USER_PROCESS_PARAMETERS;
 
 //
 // PEB (Process Environment Block) 32-bit
@@ -728,7 +734,7 @@ typedef struct _PEB
 	} dword254;
 	void* WaitOnAddressHashTable[128];        //0x025C
 
-} PEB;
+} PEB, * PPEB;
 
 
 //
@@ -1151,5 +1157,105 @@ typedef struct _LDR_DATA_TABLE_ENTRY
 	LIST_ENTRY ServiceTagLinks;
 	LIST_ENTRY StaticLinks;
 } LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
+
+#define OBJ_CASE_INSENSITIVE             0x00000040L
+#define FILE_SUPERSEDE			         0x00000000
+#define FILE_OPEN                        0x00000001
+#define FILE_CREATE                      0x00000002
+#define FILE_OPEN_IF                     0x00000003
+#define FILE_OVERWRITE                   0x00000004
+#define FILE_MAXIMUM_DISPOSITION         0x00000005
+#define FILE_DIRECTORY_FILE              0x00000001
+#define FILE_WRITE_THROUGH               0x00000002
+#define FILE_SEQUENTIAL_ONLY             0x00000004
+#define FILE_NO_INTERMEDIATE_BUFFERING   0x00000008
+#define FILE_SYNCHRONOUS_IO_ALERT        0x00000010
+#define FILE_SYNCHRONOUS_IO_NONALERT     0x00000020
+#define FILE_NON_DIRECTORY_FILE          0x00000040
+#define FILE_CREATE_TREE_CONNECTION      0x00000080
+#define FILE_COMPLETE_IF_OPLOCKED        0x00000100
+#define FILE_NO_EA_KNOWLEDGE             0x00000200
+#define FILE_OPEN_FOR_RECOVERY           0x00000400
+#define FILE_RANDOM_ACCESS               0x00000800
+#define FILE_DELETE_ON_CLOSE             0x00001000
+#define FILE_OPEN_BY_FILE_ID             0x00002000
+#define FILE_OVERWRITE_IF                0x00000005
+
+typedef struct _IO_STATUS_BLOCK
+{
+	union
+	{
+		NTSTATUS Status;
+		VOID* Pointer;
+	};
+	ULONG_PTR Information;
+} IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
+
+typedef struct _OBJECT_ATTRIBUTES
+{
+	ULONG           Length;
+	HANDLE          RootDirectory;
+	PUNICODE_STRING ObjectName;
+	ULONG           Attributes;
+	PVOID           SecurityDescriptor;
+	PVOID           SecurityQualityOfService;
+} OBJECT_ATTRIBUTES, * POBJECT_ATTRIBUTES;
+
+typedef enum _PROCESSINFOCLASS
+{
+	ProcessBasicInformation = 0,
+	ProcessDebugPort = 7,
+	ProcessWow64Information = 26,
+	ProcessImageFileName = 27,
+	ProcessBreakOnTermination = 29
+} PROCESSINFOCLASS, * PPROCESSINFOCLASS;
+
+typedef VOID(NTAPI* PIO_APC_ROUTINE) (
+	IN PVOID            ApcContext,
+	IN PIO_STATUS_BLOCK IoStatusBlock,
+	IN ULONG            Reserved);
+
+typedef LONG KPRIORITY;
+typedef struct _PROCESS_BASIC_INFORMATION {
+	NTSTATUS ExitStatus;
+	PPEB PebBaseAddress;
+	ULONG_PTR AffinityMask;
+	KPRIORITY BasePriority;
+	ULONG_PTR UniqueProcessId;
+	ULONG_PTR InheritedFromUniqueProcessId;
+} PROCESS_BASIC_INFORMATION;
+typedef enum _MEMORY_INFORMATION_CLASS {
+	MemoryBasicInformation,
+	MemoryWorkingSetInformation,
+	MemoryMappedFilenameInformation,
+	MemoryRegionInformation,
+	MemoryWorkingSetExInformation,
+	MemorySharedCommitInformation,
+	MemoryImageInformation,
+	MemoryRegionInformationEx,
+	MemoryPrivilegedBasicInformation,
+	MemoryEnclaveImageInformation,
+	MemoryBasicInformationCapped
+} MEMORY_INFORMATION_CLASS, * PMEMORY_INFORMATION_CLASS;
+
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
+#endif
+
+#define STATUS_SUCCES 0x00000000
+#define STATUS_UNSUCCESSFUL 0xC0000001
+#define STATUS_PARTIAL_COPY 0x8000000D
+#define STATUS_ACCESS_DENIED 0xC0000022
+#define STATUS_OBJECT_PATH_NOT_FOUND 0xC000003A
+#define STATUS_OBJECT_NAME_NOT_FOUND 0xC0000034
+#define STATUS_OBJECT_NAME_INVALID 0xc0000033
+#define STATUS_SHARING_VIOLATION 0xC0000043
+#define STATUS_NO_MORE_ENTRIES 0x8000001A
+#define STATUS_INVALID_CID 0xC000000B
+#define STATUS_INFO_LENGTH_MISMATCH 0xC0000004
+#define STATUS_OBJECT_PATH_SYNTAX_BAD 0xC000003B
+#define STATUS_BUFFER_TOO_SMALL 0xC0000023
+#define STATUS_OBJECT_NAME_COLLISION 0xC0000035
+#define STATUS_ALERTED 0x00000101
 
 #include "undoc_64.h"

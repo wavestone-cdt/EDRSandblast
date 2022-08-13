@@ -95,15 +95,14 @@ typedef struct UNICODE_STRING64
 		} u;
 		QWORD dummyalign;
 	} uOrDummyAlign;
-	QWORD Buffer;
-} UNICODE_STRING64;
+	WCHAR* Buffer;
+} UNICODE_STRING64, * PUNICODE_STRING64;
 
 typedef struct _CLIENT_ID64
 {
 	QWORD  ProcessId;
 	QWORD  ThreadId;
 } CLIENT_ID64;
-
 
 //NOTE: the members of this structure are not yet complete
 typedef struct _RTL_USER_PROCESS_PARAMETERS64
@@ -215,7 +214,7 @@ typedef struct PEB64
 	QWORD                           SystemAssemblyStorageMap;           //0x0310
 	QWORD                           MinimumStackCommit;                 //0x0318
 
-} PEB64; //struct PEB64
+} PEB64, * PPEB64; //struct PEB64
 
 //
 // TEB64 structure - preliminary structure; the portion listed current at least as of Windows 8

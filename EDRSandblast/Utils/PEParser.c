@@ -3,6 +3,7 @@
 * Among other things, reimplements GetProcAddress and the PE relocation process
 */
 
+#include "../EDRSandblast.h"
 #include "PEParser.h"
 #include <stdio.h>
 #include <assert.h>
@@ -143,7 +144,7 @@ VOID PE_rebasePE(PE* pe, LPVOID newBaseAddress)
 	QWORD* relocQwAddress;
 
 	if (pe->isMemoryMapped) {
-		printf("ERROR : Cannot rebase PE that is memory mapped (LoadLibrary'd)\n");
+		printf_or_not("ERROR : Cannot rebase PE that is memory mapped (LoadLibrary'd)\n");
 		return;
 	}
 	if (NULL == pe->relocations) {
@@ -167,7 +168,7 @@ VOID PE_rebasePE(PE* pe, LPVOID newBaseAddress)
 			*relocQwAddress += ((intptr_t)newBaseAddress) - ((intptr_t)oldBaseAddress);
 			break;
 		default:
-			printf("Unsupported relocation : 0x%x\nExiting...\n", pe->relocations[i].Type);
+			printf_or_not("Unsupported relocation : 0x%x\nExiting...\n", pe->relocations[i].Type);
 			exit(1);
 		}
 	}
@@ -208,6 +209,23 @@ PE* PE_create(PVOID imageBase, BOOL isMemoryMapped) {
 		pe->exportedNamesLength = pe->exportDirectory->NumberOfNames;
 	}
 	pe->relocations = NULL;
+	DWORD debugRVA = pe->dataDir[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
+	if (debugRVA == 0) {
+		pe->debugDirectory = NULL;
+	}
+	else {
+		pe->debugDirectory = PE_RVA_to_Addr(pe, debugRVA);
+		if (pe->debugDirectory->Type != IMAGE_DEBUG_TYPE_CODEVIEW) {
+			pe->debugDirectory = NULL;
+		}
+		else {
+			pe->codeviewDebugInfo = PE_RVA_to_Addr(pe, pe->debugDirectory->AddressOfRawData);
+			if (pe->codeviewDebugInfo->signature != *((DWORD*)"RSDS")) {
+				pe->debugDirectory = NULL;
+				pe->codeviewDebugInfo = NULL;
+			}
+		}
+	}
 	return pe;
 }
 
@@ -255,6 +273,28 @@ PE* PE_create_from_another_address_space(HANDLE hProcess, PVOID imageBase) {
 		ReadProcessMemory(pe->hProcess, &pe->exportDirectory->NumberOfNames, &pe->exportedNamesLength, sizeof(pe->exportedNamesLength), NULL);
 	}
 	pe->relocations = NULL;
+	DWORD debugRVA = 0;
+	ReadProcessMemory(hProcess, &pe->dataDir[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress, &debugRVA, sizeof(debugRVA), NULL);
+	if (debugRVA == 0) {
+		pe->debugDirectory = NULL;
+	}
+	else {
+		pe->debugDirectory = PE_RVA_to_Addr(pe, debugRVA);
+		DWORD debugDirectoryType;
+		ReadProcessMemory(hProcess, &pe->debugDirectory->Type, &debugDirectoryType, sizeof(debugDirectoryType), NULL);
+		if (debugDirectoryType != IMAGE_DEBUG_TYPE_CODEVIEW) {
+			pe->debugDirectory = NULL;
+		}
+		else {
+			pe->codeviewDebugInfo = PE_RVA_to_Addr(pe, pe->debugDirectory->AddressOfRawData);
+			DWORD codeviewDebugInfoSignature;
+			ReadProcessMemory(hProcess, &pe->codeviewDebugInfo->signature, &codeviewDebugInfoSignature, sizeof(pe->codeviewDebugInfo->signature), NULL);
+			if (codeviewDebugInfoSignature != *((DWORD*)"RSDS")) {
+				pe->debugDirectory = NULL;
+				pe->codeviewDebugInfo = NULL;
+			}
+		}
+	}
 	return pe;
 }
 
@@ -289,6 +329,9 @@ DWORD PE_functionRVA(PE* pe, LPCSTR functionName) {
 
 PVOID PE_functionAddr(PE* pe, LPCSTR functionName) {
 	DWORD functionRVA = PE_functionRVA(pe, functionName);
+	if (functionRVA == 0) {
+		return NULL;
+	}
 	return PE_RVA_to_Addr(pe, functionRVA);
 }
 
@@ -365,4 +408,13 @@ PVOID PE_search_relative_reference(PE* pe, PVOID target, DWORD relativeReference
 
 	}
 	return NULL;
+}
+
+VOID PE_destroy(PE* pe)
+{
+	if (pe->relocations) {
+		free(pe->relocations);
+		pe->relocations = NULL;
+	}
+	free(pe);
 }

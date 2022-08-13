@@ -11,13 +11,16 @@
 
 
 enum NtoskrnlOffsetType {
-    CREATE_PROCESS_ROUTINE = 0,
-    CREATE_THREAD_ROUTINE = 1,
-    LOAD_IMAGE_ROUTINE = 2,
-    PROTECTION_LEVEL = 3,
-    ETW_THREAT_INT_PROV_REG_HANDLE = 4,
-    ETW_REG_ENTRY_GUIDENTRY = 5,
-    ETW_GUID_ENTRY_PROVIDERENABLEINFO = 6,
+    CREATE_PROCESS_ROUTINE,
+    CREATE_THREAD_ROUTINE,
+    LOAD_IMAGE_ROUTINE,
+    PROTECTION_LEVEL,
+    ETW_THREAT_INT_PROV_REG_HANDLE,
+    ETW_REG_ENTRY_GUIDENTRY,
+    ETW_GUID_ENTRY_PROVIDERENABLEINFO,
+    PSPROCESSTYPE,
+    PSTHREADTYPE,
+    OBJECT_TYPE_CALLBACKLIST,
     _SUPPORTED_NTOSKRNL_OFFSETS_END
 };
 
@@ -30,21 +33,41 @@ union NtoskrnlOffsets {
         DWORD64 pspCreateThreadNotifyRoutine;
         // ntoskrnl's PspLoadImageNotifyRoutine
         DWORD64 pspLoadImageNotifyRoutine;
-        // ntoskrnl EPROCESS's _PS_PROTECTION
-        DWORD64 ps_protection;
+        // ntoskrnl EPROCESS's Protection field offset
+        DWORD64 eprocess_protection;
         // ntoskrnl ETW Threat Intelligence's EtwThreatIntProvRegHandle
         DWORD64 etwThreatIntProvRegHandle;
         // ntoskrnl _ETW_REG_ENTRY's GuidEntry
         DWORD64 etwRegEntry_GuidEntry;
         // ntoskrnl _ETW_GUID_ENTRY's ProviderEnableInfo
         DWORD64 etwGuidEntry_ProviderEnableInfo;
+        // ntoskrnl PsProcessType symbol offset
+        DWORD64 psProcessType;
+        // ntoskrnl PsThreadType symbol offset
+        DWORD64 psThreadType;
+        // ntoskrnl _OBJECT_TYPE's CallbackList symbol offset
+        DWORD64 object_type_callbacklist;
     } st;
 
     // array version (usefull for code factoring)
     DWORD64 ar[_SUPPORTED_NTOSKRNL_OFFSETS_END];
 };
 
-union NtoskrnlOffsets ntoskrnlOffsets;
+union NtoskrnlOffsets g_ntoskrnlOffsets;
 
-// Return the offsets of nt!PspCreateProcessNotifyRoutine, nt!PspCreateThreadNotifyRoutine, nt!PspLoadImageNotifyRoutine, and nt!_PS_PROTECTION for the specific Windows version in use.
-union NtoskrnlOffsets GetNtoskrnlVersionOffsets(TCHAR* ntoskrnlOffsetFilename);
+// Stores, in a global variable, the offsets of nt!PspCreateProcessNotifyRoutine, nt!PspCreateThreadNotifyRoutine, nt!PspLoadImageNotifyRoutine, and nt!_PS_PROTECTION for the specific Windows version in use.
+void LoadNtoskrnlOffsetsFromFile(TCHAR* ntoskrnlOffsetFilename);
+
+// Saves the offsets, stored in global variable, in the provided CSV file
+void SaveNtoskrnlOffsetsToFile(TCHAR* ntoskrnlOffsetFilename);
+
+// Print the Ntosknrl offsets.
+void PrintNtoskrnlOffsets();
+
+void LoadNtoskrnlOffsetsFromInternet(BOOL delete_pdb);
+
+BOOL NtoskrnlOffsetsAreAllPresent();
+BOOL NtoskrnlAllKernelCallbacksOffsetsArePresent();
+BOOL NtoskrnlNotifyRoutinesOffsetsArePresent();
+BOOL NtoskrnlEtwtiOffsetsArePresent();
+BOOL NtoskrnlObjectCallbackOffsetsArePresent();

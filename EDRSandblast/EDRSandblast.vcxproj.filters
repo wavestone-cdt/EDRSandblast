@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="EDRSandblast.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="EDRBypass\KernelCallbacks.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="LSASSProtectionBypass\CredGuard.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -31,9 +25,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Utils\DriverOps.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\LSASSDump.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Utils\FileVersion.c">
@@ -48,16 +39,82 @@
     <ClCompile Include="Utils\WdigestOffsets.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EDRBypass\ETWThreatIntel.c">
+    <ClCompile Include="Utils\FirewallOps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Userland\PEBBrowse.c">
+    <ClCompile Include="Utils\IsEDRChecks.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Userland\PEParser.c">
+    <ClCompile Include="Utils\IsElevatedProcess.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Userland\UserlandHooks.c">
+    <ClCompile Include="Utils\WindowsServiceOps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\SignatureOps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KernellandBypass\ETWThreatIntel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KernellandBypass\KernelCallbacks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UserlandBypass\Firewalling.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UserlandBypass\UserlandHooks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PdbSymbols.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\HttpClient.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\FileUtils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KernellandBypass\ObjectCallbacks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\SW2_Syscalls.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KernellandBypass\KernelUtils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Drivers\DriverRTCore.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\SyscallProcessUtils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Drivers\DriverDBUtil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\StringUtils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PEParser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PEBBrowse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\RemotePEBBrowser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ListUtils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UserlandBypass\Syscalls.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ProcessDump.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UserlandBypass\ProcessDumpDirectSyscalls.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -71,13 +128,7 @@
     <ClInclude Include="Includes\KernelMemoryPrimitives.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EDRSandBlast.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Includes\DriverOps.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Includes\LSASSDump.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Includes\FileVersion.h">
@@ -113,5 +164,76 @@
     <ClInclude Include="Includes\UserlandHooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Includes\Firewalling.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\FirewallOps.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\IsElevatedProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\WindowsServiceOps.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\SignatureOps.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\IsEDRChecks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\PdbSymbols.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\HttpClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\FileUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\ObjectCallbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\KernelUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\DriverRTCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\DriverDBUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\SyscallProcessUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\SW2_Syscalls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\StringUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\RemotePEBBrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\ListUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\Syscalls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\ProcessDump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\ProcessDumpDirectSyscalls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EDRSandblast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="Utils\SW2_Syscalls_stubs.x64.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

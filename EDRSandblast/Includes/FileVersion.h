@@ -2,8 +2,10 @@
 
 #include <Windows.h>
 
+LPTSTR GetNtoskrnlPath();
+
 void GetFileVersion(TCHAR* buffer, SIZE_T bufferLen, TCHAR* filename);
 
-void GetNtoskrnlVersion(TCHAR* ntoskrnlVersion);
+LPTSTR GetNtoskrnlVersion();
 
-void GetWdigestVersion(TCHAR* wdigestVersion);
+LPTSTR GetWdigestVersion();

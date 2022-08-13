@@ -24,32 +24,33 @@
     <ProjectGuid>{7e3e2ece-d1eb-43c6-8c83-b52b7571954b}</ProjectGuid>
     <RootNamespace>EDRSandblast</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>EDRSandblast_Core</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -58,6 +59,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -82,9 +84,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(SolutionDir)EDRSandblast\Includes;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <IncludePath>$(SolutionDir)EDRSandblast\Includes;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -97,7 +104,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;Shlwapi.lib;Winhttp.lib;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -115,7 +122,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;Shlwapi.lib;Winhttp.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -130,7 +137,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;Pathcch.lib;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;Shlwapi.lib;Winhttp.lib;Pathcch.lib;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,52 +150,106 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>Includes\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;Pathcch.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;Shlwapi.lib;Winhttp.lib;Pathcch.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;;advapi32.lib;dbghelp.lib;version.lib</AdditionalDependencies>
+      <ProgramDatabaseFile />
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="EDRBypass\ETWThreatIntel.c" />
-    <ClCompile Include="EDRBypass\KernelCallbacks.c" />
-    <ClCompile Include="EDRSandblast.c" />
+    <ClCompile Include="Drivers\DriverDBUtil.c" />
+    <ClCompile Include="Drivers\DriverRTCore.c" />
+    <ClCompile Include="KernellandBypass\ETWThreatIntel.c" />
+    <ClCompile Include="KernellandBypass\KernelCallbacks.c" />
+    <ClCompile Include="KernellandBypass\KernelUtils.c" />
+    <ClCompile Include="KernellandBypass\ObjectCallbacks.c" />
+    <ClCompile Include="UserlandBypass\Syscalls.c" />
+    <ClCompile Include="UserlandBypass\ProcessDumpDirectSyscalls.c" />
+    <ClCompile Include="Utils\FileUtils.c" />
+    <ClCompile Include="Utils\HttpClient.c" />
     <ClCompile Include="LSASSProtectionBypass\CredGuard.c" />
     <ClCompile Include="LSASSProtectionBypass\RunAsPPL.c" />
-    <ClCompile Include="Userland\PEBBrowse.c" />
-    <ClCompile Include="Userland\PEParser.c" />
-    <ClCompile Include="Userland\UserlandHooks.c" />
+    <ClCompile Include="Utils\ListUtils.c" />
+    <ClCompile Include="Utils\RemotePEBBrowser.c" />
+    <ClCompile Include="Utils\PdbSymbols.c" />
+    <ClCompile Include="UserlandBypass\Firewalling.c" />
+    <ClCompile Include="UserlandBypass\UserlandHooks.c" />
     <ClCompile Include="Utils\DriverOps.c" />
     <ClCompile Include="Utils\FileVersion.c" />
+    <ClCompile Include="Utils\FirewallOps.cpp" />
+    <ClCompile Include="Utils\IsEDRChecks.c" />
+    <ClCompile Include="Utils\IsElevatedProcess.c" />
     <ClCompile Include="Utils\KernelMemoryPrimitives.c" />
     <ClCompile Include="Utils\KernelPatternSearch.c" />
-    <ClCompile Include="Utils\LSASSDump.c" />
+    <ClCompile Include="Utils\ProcessDump.c" />
     <ClCompile Include="Utils\NtoskrnlOffsets.c" />
+    <ClCompile Include="Utils\PEBBrowse.c" />
+    <ClCompile Include="Utils\PEParser.c" />
+    <ClCompile Include="Utils\StringUtils.c" />
+    <ClCompile Include="Utils\SignatureOps.c" />
+    <ClCompile Include="Utils\SW2_Syscalls.c" />
+    <ClCompile Include="Utils\SyscallProcessUtils.c" />
     <ClCompile Include="Utils\WdigestOffsets.c" />
+    <ClCompile Include="Utils\WindowsServiceOps.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EDRSandblast.h" />
+    <ClInclude Include="Includes\CredGuard.h" />
+    <ClInclude Include="Includes\DriverDBUtil.h" />
+    <ClInclude Include="Includes\DriverRTCore.h" />
+    <ClInclude Include="Includes\ProcessDumpDirectSyscalls.h" />
+    <ClInclude Include="Includes\FileUtils.h" />
+    <ClInclude Include="Includes\HttpClient.h" />
     <ClInclude Include="Includes\DriverOps.h" />
-    <ClInclude Include="EDRSandBlast.h" />
     <ClInclude Include="Includes\ETWThreatIntel.h" />
     <ClInclude Include="Includes\FileVersion.h" />
+    <ClInclude Include="Includes\Firewalling.h" />
+    <ClInclude Include="Includes\FirewallOps.h" />
+    <ClInclude Include="Includes\IsEDRChecks.h" />
+    <ClInclude Include="Includes\IsElevatedProcess.h" />
     <ClInclude Include="Includes\KernelCallbacks.h" />
     <ClInclude Include="Includes\KernelMemoryPrimitives.h" />
     <ClInclude Include="Includes\KernelPatternSearch.h" />
-    <ClInclude Include="Includes\LSASSDump.h" />
+    <ClInclude Include="Includes\KernelUtils.h" />
+    <ClInclude Include="Includes\ListUtils.h" />
+    <ClInclude Include="Includes\ProcessDump.h" />
+    <ClInclude Include="Includes\RemotePEBBrowser.h" />
     <ClInclude Include="Includes\NtoskrnlOffsets.h" />
     <ClInclude Include="Includes\PEBBrowse.h" />
     <ClInclude Include="Includes\PEParser.h" />
+    <ClInclude Include="Includes\RunAsPPL.h" />
+    <ClInclude Include="Includes\SignatureOps.h" />
+    <ClInclude Include="Includes\StringUtils.h" />
+    <ClInclude Include="Includes\SW2_Syscalls.h" />
+    <ClInclude Include="Includes\SyscallProcessUtils.h" />
+    <ClInclude Include="Includes\Syscalls.h" />
     <ClInclude Include="Includes\Undoc.h" />
     <ClInclude Include="Includes\Undoc_64.h" />
     <ClInclude Include="Includes\UserlandHooks.h" />
     <ClInclude Include="Includes\WdigestOffsets.h" />
-    <ClInclude Include="Includes\CredGuard.h" />
-    <ClInclude Include="Includes\RunAsPPL.h" />
+    <ClInclude Include="Includes\WindowsServiceOps.h" />
+    <ClInclude Include="Includes\PdbSymbols.h" />
+    <ClInclude Include="Includes\ObjectCallbacks.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="Utils\SW2_Syscalls_stubs.x64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </MASM>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

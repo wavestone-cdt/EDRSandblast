@@ -10,15 +10,9 @@
 
 #include <Windows.h>
 
-
 //extern union NtoskrnlOffsets ntoskrnlOffsets;
 
-#ifndef NT_SUCCESS
-#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
-#endif
-#define STATUS_INFO_LENGTH_MISMATCH 0xc0000004
 
-#define PROTECTED_PROCESS_MASK	0x00000800
 
 /*
 * Defines the NtQuerySystemInformation function.

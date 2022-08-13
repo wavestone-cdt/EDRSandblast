@@ -13,7 +13,8 @@
 
 enum WdigestOffsetType {
     g_fParameter_UseLogonCredential = 0,
-    g_IsCredGuardEnabled = 1
+    g_IsCredGuardEnabled = 1,
+    _SUPPORTED_WDIGEST_OFFSETS_END
 };
 
 union WdigestOffsets {
@@ -29,7 +30,12 @@ union WdigestOffsets {
     DWORD64 ar[2];
 };
 
-union WdigestOffsets wdigestOffsets;
+union WdigestOffsets g_wdigestOffsets;
 
 // Return the offsets of nt!PspCreateProcessNotifyRoutine, nt!PspCreateThreadNotifyRoutine, nt!PspLoadImageNotifyRoutine, and nt!_PS_PROTECTION for the specific Windows version in use.
-union WdigestOffsets GetWdigestVersionOffsets(TCHAR* wdigestOffsetFilename);
+void LoadWdigestOffsetsFromFile(TCHAR* wdigestOffsetFilename);
+void SaveWdigestOffsetsToFile(TCHAR* wdigestOffsetFilename);
+
+void LoadWdigestOffsetsFromInternet(BOOL delete_pdb);
+
+LPTSTR GetWdigestPath();

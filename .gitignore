@@ -354,3 +354,7 @@ Offsets/*.exe
 Offsets/*.dll
 /Offsets/nt
 /Offsets/wd
+
+# Exclude drivers and lsass dumps
+*.sys
+lsass
