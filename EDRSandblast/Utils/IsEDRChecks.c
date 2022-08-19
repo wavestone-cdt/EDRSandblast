@@ -6,6 +6,7 @@
 */
 
 // List of keywords matching EDR companies as employed for binary digitial signatures.
+// TODO : enrich this list
 TCHAR const* EDR_SIGNATURE_KEYWORDS[] = {
    _T("CarbonBlack"),
    _T("CrowdStrike"),
@@ -15,6 +16,7 @@ TCHAR const* EDR_SIGNATURE_KEYWORDS[] = {
    _T("Kaspersky"),
    _T("McAfee"),
    _T("SentinelOne"),
+   _T("Sentinel Labs"),
    _T("Symantec")
 };
 

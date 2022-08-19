@@ -1,9 +1,9 @@
 # EDRSandBlast
 
 `EDRSandBlast` is a tool written in `C` that weaponize a vulnerable signed
-driver to bypass EDR detections (Kernel callbacks and `ETW TI` provider) and
-`LSASS` protections. Multiple userland unhooking techniques are also
-implemented to evade userland monitoring.
+driver to bypass EDR detections (Notify Routine callbacks, Object Callbacks
+and `ETW TI` provider) and `LSASS` protections. Multiple userland unhooking
+techniques are also implemented to evade userland monitoring.
 
 As of release, combination of userland (`--usermode`) and Kernel-land
 (`--kernelmode`) techniques were used to dump `LSASS` memory under EDR
@@ -13,15 +13,15 @@ EDR products and were successful in each case.
 
 ## Description
 
-### EDR bypass through Kernel callbacks removal
+### EDR bypass through Kernel Notify Routines removal
 
-EDR products use Kernel callbacks on Windows to be notified by the kernel of
+EDR products use Kernel "Notify Routines" callbacks on Windows to be notified by the kernel of
 system activity, such as process and thread creation and loading of images
 (`exe` / `DLL`).
 
-The Kernel callbacks are defined from user-land using a number of documented
+These Kernel callbacks are defined from kernel-land, usually from the driver implementing the callbacks, using a number of documented
 APIs (`nt!PsSetCreateProcessNotifyRoutine`, `nt!PsSetCreateThreadNotifyRoutine`,
-etc.). The user-land APIs add driver-supplied callback routines to undocumented
+etc.). These APIs add driver-supplied callback routines to undocumented
 arrays of routines in Kernel-space:
   - `PspCreateProcessNotifyRoutine` for process creation
   - `PspCreateThreadNotifyRoutine` for thread creation
@@ -29,26 +29,140 @@ arrays of routines in Kernel-space:
 
 `EDRSandBlast` enumerates the routines defined in those arrays and remove any
 callback routine linked to a predefined list of EDR drivers (more than 1000
-thousands drivers of security products from the
-[allocated filter altitudes](https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/allocated-altitudes)).
+ drivers of security products supported, see the [EDR driver detection section](#edr-drivers-and-processes-detection).
 The enumeration and removal are made possible through the exploitation of an
-arbitrary Kernel memory read / write vulnerability of the
-`Micro-Star MSI Afterburner` driver (`CVE-2019-16098`). The enumeration and
-removal code is largely inspired from
-[br-sn's CheekyBlinder project](https://github.com/br-sn/CheekyBlinder).
+arbitrary Kernel memory read / write primitive provided by the exploitation of a vulnerable driver (see [Vulnerable drivers section](#vulnerable-drivers-detection)).
 
-The offsets of the aforementioned arrays are hardcoded in the
-`NtoskrnlOffsets.csv` file for more than 350 versions of the Windows Kernel
-`ntoskrnl.exe`. The choice of going with hardcoded offsets instead of pattern
-searches is justified by the fact that the undocumented APIs responsible for
-Kernel callbacks addition / removal are subject to change and that any attempt
-to write Kernel memory at the wrong address may (and often will) result in a
-`Bug Check` (`Blue Screen of Death`). For more information on how the offsets
-were gathered (and how to update them), refer to [Offsets section](Offsets).
+The offsets of the aforementioned arrays are recovered using multiple techniques, please refer to [Offsets section](#ntoskrnl-and-wdigest-offsets).
+
+### EDR bypass through Object Callbacks removal
+EDR (and even EPP) products often register "Object callbacks" through the use of the
+`nt!ObRegisterCallbacks` kernel API. These callbacks allow the security product to
+be notified at each handle generation on specific object types (Processes, Threads and
+Desktops related object callbacks are now supported by Windows). A handle generation
+may occur on object opening (call to `OpenProcess`, `OpenThread`, etc.) as well as
+handle duplication (call to `DuplicateHandle`, etc.).
+
+By being notified by the kernel on each of these operations, a security product may
+analyze the legitimacy of the handle creation (*e.g. an unknown process is trying to open
+LSASS*), and even block it if a threat is detected.
+
+At each callback registration using `ObRegisterCallbacks`, a new item is added to
+the `CallbackList` double-linked list present in the `_OBJECT_TYPE` object describing
+the type of object affected by the callback (either a Process, a Thread or a Desktop).
+Unfortunately, these items are described by a structure that is not documented nor
+published in symbol files by Microsoft. However, studying it from various `ntoskrnl.exe`
+versions seems to indicate that the structure did not change between (at least) Windows
+10 builds 10240 and 22000 (from 2015 to 2022).
+
+The mentionned structure, representing an object callback registration, is the following:
+```C
+typedef struct OB_CALLBACK_ENTRY_t {
+    LIST_ENTRY CallbackList; // linked element tied to _OBJECT_TYPE.CallbackList
+    OB_OPERATION Operations; // bitfield : 1 for Creations, 2 for Duplications
+    BOOL Enabled;            // self-explanatory
+    OB_CALLBACK* Entry;      // points to the structure in which it is included
+    POBJECT_TYPE ObjectType; // points to the object type affected by the callback
+    POB_PRE_OPERATION_CALLBACK PreOperation;      // callback function called before each handle operation
+    POB_POST_OPERATION_CALLBACK PostOperation;     // callback function called after each handle operation
+    KSPIN_LOCK Lock;         // lock object used for synchronization
+} OB_CALLBACK_ENTRY;
+```
+The `OB_CALLBACK` structure mentionned above is also undocumented, and is defined
+by the following:
+```C
+typedef struct OB_CALLBACK_t {
+    USHORT Version;                           // usually 0x100
+    USHORT OperationRegistrationCount;        // number of registered callbacks
+    PVOID RegistrationContext;                // arbitrary data passed at registration time
+    UNICODE_STRING AltitudeString;            // used to determine callbacks order
+    struct OB_CALLBACK_ENTRY_t EntryItems[1]; // array of OperationRegistrationCount items
+    WCHAR AltitudeBuffer[1];                  // is AltitudeString.MaximumLength bytes long, and pointed by AltitudeString.Buffer
+} OB_CALLBACK;
+```
+
+In order to disable EDR-registered object callbacks, three techniques are implemented in
+`EDRSandblast`; however only one is enabled for the moment.
+
+#### Using the `Enabled` field of `OB_CALLBACK_ENTRY`
+This is the default technique enabled in `EDRSandblast`. In order to detect and disable
+EDR-related object callbacks, the `CallbackList` list located in the `_OBJECT_TYPE`
+objects tied to the *Process* and *Thread* types is browsed. Both `_OBJECT_TYPE`s are
+pointed by public global symbols in the kernel, `PsProcessType` and `PsThreadType`.
+
+Each item of the list is assumed to fit the `OB_CALLBACK_ENTRY` structure described above
+(assumption that seems to hold at least in all Windows 10 builds at the time of writing).
+Functions defined in `PreOperation` and `PostOperation` fields are located to checks
+if they belong to an EDR driver, and if so, callbacks are simply disabled toggling the `Enabled`
+flag.
+
+While being a pretty safe technique, it has the inconvenient of relying on an undocumented
+structure; to reduce the risk of unsafe manipulation of this structure, basic checks are
+performed to validate that some fields have the expected values :
+* `Enabled` is either `TRUE` or `FALSE` (*don't laugh, a `BOOL` is an `int`, so it could be anything other than `1` or `0`*);
+* `Operations` is `OB_OPERATION_HANDLE_CREATE`,  `OB_OPERATION_HANDLE_DUPLICATE` or both;
+* `ObjectType` points on `PsProcessType` or `PsThreadType`.
+
+#### Unlinking the `CallbackList` of threads and process
+Another strategy that do not rely on an undocumented structure (and is thus theoretically
+more robust against NT kernel changes) is the unlinking of the whole `CallbackList`
+for both processes and threads. The `_OBJECT_TYPE` object is the following:
+```C
+struct _OBJECT_TYPE {
+	LIST_ENTRY TypeList;
+	UNICODE_STRING Name;
+	[...]
+	_OBJECT_TYPE_INITIALIZER TypeInfo;
+	[...]
+	LIST_ENTRY CallbackList;
+}
+```
+Making the `Flink` and `Blink` pointers of the `CallbackList` `LIST_ENTRY` point to
+the `LIST_ENTRY` itself effectively make the list empty. Since the `_OBJECT_TYPE` structure
+is published in the kernel' symbols, the technique does not rely on hardcoded offsets/structures.
+However, it has some drawbacks.
+
+The first being not able to only disable callbacks from EDR; indeed, the technique affects
+all object callbacks that could have been registered by "legitimate" software. It should
+nevertheless be noted that object callbacks are not used by any pre-installed component
+on Windows 10 (at the time of writing) so disabling them should not affect the machine
+stability (even more so if the disabling is only temporary).
+
+The second drawback is that process or thread handle operation are really frequent (nearly
+continuous) in the normal functioning of the OS. As such, if the kernel write primitive used
+cannot perform a `QWORD` write "atomically", there is a good chance that the
+`_OBJECT_TYPE.CallbackList.Flink` pointer will be accessed by the kernel in the middle
+of its overwriting. For instance, the MSI vulnerable driver `RTCore64.sys` can only perform
+a `DWORD` write at a time, so 2 distinct IOCTLs will be needed to overwrite the pointer, between
+which the kernel has a high probability of using it (resulting in a crash). On the other hand,
+the vulnerable DELL driver `DBUtil_2_3.sys` can perform writes of arbitrary sizes in one
+IOCTL, so using this method with it does not risk causing a crash.
+
+#### Disabling object callbacks altogether
+One last technique we found was to disable entirely the object callbacks support for thread
+and processes. Inside the `_OBJECT_TYPE` structure corresponding to the process and
+thread types resides a `TypeInfo` field, following the documented `_OBJECT_TYPE_INITIALIZER`
+structure. The latter contains a `ObjectTypeFlags` bit field, whose `SupportsObjectCallbacks`
+flag determines if the described object type (Process, Thread, Desktop, Token, File, etc.)
+supports object callback registering or not. As previously stated, only Process, Thread and
+Desktop object types supports these callbacks on a Windows installation at the time of writing.
+
+Since the `SupportsObjectCallbacks` bit is checked by `ObpCreateHandle` or
+`ObDuplicateObject` before even reading the `CallbackList` (and before executing
+callbacks, of course), flipping the bit at kernel runtime effectively disable all object callbacks
+execution.
+
+The main drawback of the method is simply that *KPP* ("*PatchGuard*") monitors the integrity
+of some (all ?) `_OBJECT_TYPE` structures, and triggers a [`0x109 Bug Check`](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x109---critical-structure-corruption)
+with parameter 4 being equal to `0x8`, meaning an object type structure has been altered.
+
+However, performing the disabling / re-enabling (and "malicious" action in-between) quickly
+enough should be enough to "race" *PatchGuard* (unless you are unlucky and a periodic
+check is performed just at the wrong moment).
 
 ### EDR bypass through deactivation of the ETW Microsoft-Windows-Threat-Intelligence provider
 
-The `ETW Microsoft-Windows-Threat-Intelligence` provider log data about the
+The `ETW Microsoft-Windows-Threat-Intelligence` provider logs data about the
 usages of some Windows API commonly used maliciously. This include the
 `nt!MiReadWriteVirtualMemory` API, called by `nt!NtReadVirtualMemory` (which is
 used to dump `LSASS` memory) and monitored by the `nt!EtwTiLogReadWriteVm`
@@ -68,7 +182,7 @@ blog post for more information on the technique.
 
 Similarly to the Kernel callbacks removal, the necessary `ntoskrnl.exe` offsets
 (`nt!EtwThreatIntProvRegHandleOffset`, `_ETW_REG_ENTRY`'s `GuidEntry`, and
-`_ETW_GUID_ENTRY`'s `ProviderEnableInfo`) are hardcoded in the
+`_ETW_GUID_ENTRY`'s `ProviderEnableInfo`) are computed in the
 `NtoskrnlOffsets.csv` file for a number of the Windows Kernel versions.
 
 ### EDR bypass through userland hooking bypass
@@ -185,7 +299,7 @@ To bypass a specific hook, it is possible to simply "jump over" and execute the 
 the function as is. First, the original bytes of the monitored function, that have been
 overwritten by the EDR to install the hook, must be recovered from the DLL file. In our
 previous code example, this would be the bytes corresponding to the following
-instructions: 
+instructions:
 
 ```assembly
 mov r10, rcx
@@ -260,23 +374,86 @@ the `unhook()` function's code path when `unhook_method` is
 In order to use system calls related functions, one program can reimplement syscalls (in
 assembly) in order to call the corresponding OS features without actually touching the
 code in `ntdll.dll`, which might be monitored by the EDR.  This completely bypasses any
-userland hooking done on syscall functions in `ntdll.dll`. 
+userland hooking done on syscall functions in `ntdll.dll`.
 
 This nevertheless has some drawbacks. First, this implies being able to know the list of
 syscall numbers of functions the program needs, which changes for each version of
-Windows. Also, functions that are not technically syscalls
+Windows. This is nevertheless mitigated by implementing multiple heuristics that are known
+to work in all the past versions of Windows NT (sorting `ntdll`'s' `Zw*` exports, searching
+for `mov rax, #syscall_number` instruction in the associated `ntdll` function, etc.),
+and checking they all return the same result (see `Syscalls.c` for more details).
+
+Also, functions that are not technically syscalls
 (e.g. `LoadLibraryX`/`LdrLoadDLL`) could be monitored as well, and cannot simply be
 reimplemented using a syscall.
 
-This technique is implemented in EDRSandblast. As previously stated, it is only used to
-execute `NtProtectVirtualMemory` safely, and remove all detected hooks. However, in order
-not to rely on hardcoded offsets, a small heuristic is implemented to search for `mov eax,
-imm32` instruction at the start of the `NtProtectVirtualMemory` function and recover the
-syscall number from it if found (otherwise relying on hardcoded offset for known Windows
-versions).
+The direct syscalls technique is implemented in EDRSandblast. As previously stated, it is only used to
+execute `NtProtectVirtualMemory` safely, and remove all detected hooks.
 
 For implementation details, check the `unhook()` function's code path when `unhook_method` is
 `UNHOOK_WITH_DIRECT_SYSCALL`.
+
+### Vulnerable drivers exploitation
+As previously stated, every action that needs a kernel memory read or write relies on a
+vulnerable driver to give this primitive. In EDRSanblast, adding the support for a new
+driver providing the read/write primitive can be "easily" done, only three functions
+need to be implemented:
+* A `ReadMemoryPrimitive_DRIVERNAME(SIZE_T Size, DWORD64 Address, PVOID Buffer)` function, that copies `Size` bytes from kernel address `Address` to userland buffer `Buffer`;
+* A `WriteMemoryPrimitive_DRIVERNAME(SIZE_T Size, DWORD64 Address, PVOID Buffer)` function, that copies `Size` bytes from userland buffer `Buffer` to kernel address `Address`;
+* A `CloseDriverHandle_DRIVERNAME()` that ensures all handles to the driver are closed (needed before uninstall operation which is driver-agnostic, for the moment).
+
+As an example, two drivers are currently supported by EDRSandblast, `RTCore64.sys`
+(SHA256: `01AA278B07B58DC46C84BD0B1B5C8E9EE4E62EA0BF7A695862444AF32E87F1FD`)
+and `DBUtils_2_3.sys` (SHA256: `0296e2ce999e67c76352613a718e11516fe1b0efc3ffdb8918fc999dd76a73a5`).
+The following code in `KernelMemoryPrimitives.h` is to be updated if the used
+vulnerable driver needs to be changed, or if a new one implemented.
+
+```C
+#define RTCore 0
+#define DBUtil 1
+// Select the driver to use with the following #define
+#define VULN_DRIVER RTCore
+
+#if VULN_DRIVER == RTCore
+#define DEFAULT_DRIVER_FILE TEXT("RTCore64.sys")
+#define CloseDriverHandle CloseDriverHandle_RTCore
+#define ReadMemoryPrimitive ReadMemoryPrimitive_RTCore
+#define WriteMemoryPrimitive WriteMemoryPrimitive_RTCore
+#elif VULN_DRIVER == DBUtil
+#define DEFAULT_DRIVER_FILE TEXT("DBUtil_2_3.sys")
+#define CloseDriverHandle CloseDriverHandle_DBUtil
+#define ReadMemoryPrimitive ReadMemoryPrimitive_DBUtil
+#define WriteMemoryPrimitive WriteMemoryPrimitive_DBUtil
+#endif
+```
+
+### EDR drivers and processes detection
+Multiple techniques are currently used to determine if a specific driver or process belongs
+to an EDR product or not.
+
+First, the name of the driver can simply be used for that purpose. Indeed, Microsoft
+allocates specific numbers called "Altitudes" for all drivers that need to insert callbacks
+in the kernel. This allow a deterministic order in callbacks execution, independent from
+the registering order, but only based on the driver usage. A list of (vendors of) drivers
+that have reserved specific *altitude* can be found
+[on MSDN](https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/allocated-altitudes).
+As a consequence, a nearly comprehensive list of security driver names tied to security
+products is offered by Microsoft, mainly in the "FSFilter Anti-Virus" and "FSFilter Activity
+Monitor" lists. These lists of driver names are embedded in EDRSandblast, as well as
+additional contributions.
+
+Moreover, EDR executables and DLL are more than often digitally signed using the
+vendors signing certificate. Thus, checking the signer of an executable or DLL associated
+to a process may   allow to quickly identify EDR products.
+
+Also, drivers need to be directly signed by Microsoft to be allowed to be loaded in
+kernel space. While the driver's vendor is not directly the signer of the driver itself,
+it would seam that the vendor's name is still included inside an attribute of the signature;
+this detection technique is nevertheless yet to be investigated and implemented.
+
+Finally, when facing an EDR unknown to EDRSandblast, the best approach is to run
+the tool in "audit" mode, and check the list of drivers having registered kernel callbacks;
+then the driver's name can be added to the list, the tool recompiled and re-run.
 
 ### RunAsPPL bypass
 
@@ -285,7 +462,7 @@ in Windows 8.1 and Windows Server 2012 R2, leverage the `Protected Process
 Light (PPL)` technology to restrict access to the `LSASS` process. The `PPL`
 protection regulates and restricts operations, such as memory injection or
 memory dumping of protected processes, even from a process holding the
-`SeDebugPrivilege` privilege. Under the process protection model, only 
+`SeDebugPrivilege` privilege. Under the process protection model, only
 processes running with higher protection levels can perform operations on
 protected processes.
 
@@ -294,9 +471,9 @@ in kernel memory, includes a `_PS_PROTECTION` field defining the protection leve
 of a process through its `Type` (`_PS_PROTECTED_TYPE`) and `Signer` (`_PS_PROTECTED_SIGNER`)
 attributes.
 
-By writing in kernel memory, the EDRSandblast process is able to upgrade its own 
-protection level to `PsProtectedSignerWinTcb-Light`. This level is sufficient to 
-dump the `LSASS` process memory, since it "dominates" to `PsProtectedSignerLsa-Light`, 
+By writing in kernel memory, the EDRSandblast process is able to upgrade its own
+protection level to `PsProtectedSignerWinTcb-Light`. This level is sufficient to
+dump the `LSASS` process memory, since it "dominates" to `PsProtectedSignerLsa-Light`,
  the protection level of the `LSASS` process running with the `RunAsPPL` mechanism.
 
 `EDRSandBlast` implements the self protection as follow:
@@ -308,7 +485,7 @@ dump the `LSASS` process memory, since it "dominates" to `PsProtectedSignerLsa-L
     Afterburner` driver to overwrite the `_PS_PROTECTION` field of the current
     process in kernel memory. The offsets of the `_PS_PROTECTION` field
     relative to the `EPROCESS` structure (defined by the `ntoskrnl` version in
-    use) are hardcoded in the `NtoskrnlOffsets.csv` file.
+    use) are computed in the `NtoskrnlOffsets.csv` file.
 
 ### Credential Guard bypass
 
@@ -335,18 +512,51 @@ the system). Refer to the
 for more details on this technique.
 
 `EDRSandBlast` simply make the original PoC a little more opsec friendly and
-provide support for a number of `wdigest.dll` versions (through hardcoded
+provide support for a number of `wdigest.dll` versions (through computed
 offsets for `g_fParameter_useLogonCredential` and `g_IsCredGuardEnabled`).
 
-### ntoskrnl and wdigest offsets
+### Offsets retrieval
+In order to reliably perform kernel monitoring bypass operations, EDRSandblast needs
+to know exactly where to read and write kernel memory. This is done using offsets of
+global variables inside the targeted image (ntoskrnl.exe, wdigest.dll), as well as offset
+of specific fields in structures whose definitions are published by Microsoft in symbol
+files. These offsets are specific to each build of the targeted images, and must be gathered
+at least once for a specific platform version.
 
-The required `ntoskrnl.exe` and `wdigest.dll` offsets (mentioned above) are
-extracted using `r2pipe`, as implemented in the `ExtractOffsets.py` `Python`
-script. In order to support more Windows versions, the `ntoskrnl.exe` and
-`wdigest.dll` referenced by [Winbindex](https://winbindex.m417z.com/) can be
-automatically downloaded (and their offsets extracted). This allows to extract
-offsets from nearly all files that were ever published in Windows update packages 
-(to date 350+ `ntoskrnl.exe` and 30+ `wdigest.dll` versions).
+The choice of using "hardcoded" offsets instead of pattern searches to locate the structures
+and variables used by EDRSandblast is justified by the fact that the undocumented APIs
+responsible for Kernel callbacks addition / removal are subject to change and that any attempt
+to read or write Kernel memory at the wrong address may (and often will) result in a
+`Bug Check` (`Blue Screen of Death`). A machine crash is not acceptable in both
+red-teaming and normal penetration testing scenarios, since a machine that crashes
+is highly visible by defenders, and will lose any credentials that was still in memory at
+the moment of the attack.
+
+To retrieve offsets for each specific version of Windows, two approaches are implemented.
+
+#### Manual offset retrieval
+The required `ntoskrnl.exe` and `wdigest.dll` offsets can be extracted using the
+provided `ExtractOffsets.py` Python script, that relies on `radare2`  and `r2pipe`
+to download and parse symbols from PDB files, and extracted the needed offsets from
+them. Offsets are then stored in CSV files for later use by EDRSandblast.
+
+In order to support out-of-the-box a wide range of Windows builds, many versions of
+the `ntoskrnl.exe` and `wdigest.dll` binaries are referenced by
+[Winbindex](https://winbindex.m417z.com/) , and can be automatically downloaded
+(and their offsets extracted) by the `ExtractOffsets.py`. This allows to extract offsets
+from nearly all files that were ever published in Windows update packages (to date 450+
+`ntoskrnl.exe` and 30+ `wdigest.dll` versions are available and pre-computed).
+
+#### Automatic offsets retrieval and update
+An additionnal option has been implemented in `EDRSandBlast` to allow the program
+to download the needed `.pdb` files itself from Microsoft Symbol Server, extract the
+required offsets, and even update the corresponding `.csv` files if present.
+
+Using the `--internet` option make the tool execution much simpler, while introducing
+an additionnal OpSec risk, since a `.pdb` file is downloaded and dropped on disk during
+the process. This is required by the `dbghelp.dll` functions used to parse the symbols
+database ; however, full in-memory PDB parsing might be implemented in the future to
+lift this requirement and reduce the tool's footprint.
 
 ## Usage
 
@@ -453,17 +663,14 @@ optional arguments:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
                         Single file or directory containing ntoskrnl.exe / wdigest.dll to extract offsets from.
-                        If in dowload mode, the PE downloaded from MS symbols servers will be placed in this folder.
+                        If in download mode, the PE downloaded from MS symbols servers will be placed in this folder.
   -o OUTPUT, --output OUTPUT
                         CSV file to write offsets to. If the specified file already exists, only new ntoskrnl versions will be
                         downloaded / analyzed.
                         Defaults to NtoskrnlOffsets.csv / WdigestOffsets.csv in the current folder.
-  -d, --dowload         Flag to download the PE from Microsoft servers using list of versions from winbindex.m417z.com.
+  -d, --download         Flag to download the PE from Microsoft servers using list of versions from winbindex.m417z.com.
 ```
 
-### Automatic offsets retrieval and update
-An additionnal option has been implemented in `EDRSandBlast` to allow the program to download the needed `.pdb` files itself from Microsoft Symbol Server, extract the required offsets, and even update the corresponding `.csv` files if present.
-Using the `--internet` option make the tool execution much simpler, while introducing an additionnal OpSec risk, since a `.pdb` file is downloaded and dropped on disk during the process. This is required by the `dbghelp.dll` functions used to parse the symbols database ; however, full in-memory PDB parsing might be implemented in the future to lift this requierement and reduce the tool's footprint.
 
 ## Detection
 From the defender (EDR vendor, Microsoft, SOC analysts looking at EDR's telemetry, ...) point of view, multiple indicators can be used to detect or prevent this kind of techniques.
@@ -481,7 +688,7 @@ The same logic could apply to sensitive ETW variables such as the `ProviderEnabl
 ### User-mode detection
 The first indicator that a process is actively trying to evade user-land hooking is the file accesses to each DLL corresponding to loaded modules; in a normal execution, a userland process rarely needs to read DLL files outside of a `LoadLibrary` call, especially `ntdll.dll`.
 
-In order to protect API hooking from being bypassed, EDR products could periodically check that hooks are not altered in memory, inside each monitored process. 
+In order to protect API hooking from being bypassed, EDR products could periodically check that hooks are not altered in memory, inside each monitored process.
 
 Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, etc.) that does not imply the hooks removal, EDR products could potentially rely on kernel callbacks associated to the abused syscalls (ex. `PsCreateProcessNotifyRoutine` for `NtCreateProcess` syscall, `ObRegisterCallbacks` for `NtOpenProcess` syscall, etc.), and perform user-mode call-stack analysis in order to determine if the syscall was triggered from a normal path (`kernel32.dll` -> `ntdll.dll` -> syscall) or an abnormal one (ex. `program.exe` -> direct syscall).
 

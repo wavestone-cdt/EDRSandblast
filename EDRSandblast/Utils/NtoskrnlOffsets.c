@@ -78,15 +78,15 @@ void LoadNtoskrnlOffsetsFromInternet(BOOL delete_pdb) {
     if (sym_ctx == NULL) {
         return;
     }
-    g_ntoskrnlOffsets.st.pspCreateProcessNotifyRoutine = GetSymbolAddress(sym_ctx, "PspCreateProcessNotifyRoutine");
-    g_ntoskrnlOffsets.st.pspCreateThreadNotifyRoutine = GetSymbolAddress(sym_ctx, "PspCreateThreadNotifyRoutine");
-    g_ntoskrnlOffsets.st.pspLoadImageNotifyRoutine = GetSymbolAddress(sym_ctx, "PspLoadImageNotifyRoutine");
-    g_ntoskrnlOffsets.st.etwThreatIntProvRegHandle = GetSymbolAddress(sym_ctx, "EtwThreatIntProvRegHandle");
+    g_ntoskrnlOffsets.st.pspCreateProcessNotifyRoutine = GetSymbolOffset(sym_ctx, "PspCreateProcessNotifyRoutine");
+    g_ntoskrnlOffsets.st.pspCreateThreadNotifyRoutine = GetSymbolOffset(sym_ctx, "PspCreateThreadNotifyRoutine");
+    g_ntoskrnlOffsets.st.pspLoadImageNotifyRoutine = GetSymbolOffset(sym_ctx, "PspLoadImageNotifyRoutine");
+    g_ntoskrnlOffsets.st.etwThreatIntProvRegHandle = GetSymbolOffset(sym_ctx, "EtwThreatIntProvRegHandle");
     g_ntoskrnlOffsets.st.eprocess_protection= GetFieldOffset(sym_ctx, "_EPROCESS", L"Protection");
     g_ntoskrnlOffsets.st.etwRegEntry_GuidEntry= GetFieldOffset(sym_ctx, "_ETW_REG_ENTRY", L"GuidEntry");
     g_ntoskrnlOffsets.st.etwGuidEntry_ProviderEnableInfo = GetFieldOffset(sym_ctx, "_ETW_GUID_ENTRY", L"ProviderEnableInfo");
-    g_ntoskrnlOffsets.st.psProcessType = GetSymbolAddress(sym_ctx, "PsProcessType");
-    g_ntoskrnlOffsets.st.psThreadType = GetSymbolAddress(sym_ctx, "PsThreadType");
+    g_ntoskrnlOffsets.st.psProcessType = GetSymbolOffset(sym_ctx, "PsProcessType");
+    g_ntoskrnlOffsets.st.psThreadType = GetSymbolOffset(sym_ctx, "PsThreadType");
     g_ntoskrnlOffsets.st.object_type_callbacklist = GetFieldOffset(sym_ctx, "_OBJECT_TYPE", L"CallbackList");
     UnloadSymbols(sym_ctx, delete_pdb);
 }

@@ -73,6 +73,9 @@ symbol_ctx* LoadSymbolsFromPE(PE* pe) {
 		WriteFullFileW(ctx->pdb_name_w, file, file_size);
 		free(file);
 	}
+	else {
+		//TODO : check if exisiting PDB corresponds to the file version
+	}
 	DWORD64 asked_pdb_base_addr = 0x1337000;
 	DWORD pdb_image_size = MAXDWORD;
 	HANDLE cp = GetCurrentProcess();
@@ -111,12 +114,17 @@ symbol_ctx* LoadSymbolsFromImageFile(LPCWSTR image_file_path) {
 	return ctx;
 }
 
-DWORD64 GetSymbolAddress(symbol_ctx* ctx, LPCSTR symbol_name) {
+DWORD64 GetSymbolOffset(symbol_ctx* ctx, LPCSTR symbol_name) {
 	SYMBOL_INFO_PACKAGE si = { 0 };
 	si.si.SizeOfStruct = sizeof(SYMBOL_INFO);
 	si.si.MaxNameLen = sizeof(si.name);
-	SymGetTypeFromName(ctx->sym_handle, ctx->pdb_base_addr, symbol_name, &si.si);
-	return si.si.Address - ctx->pdb_base_addr;
+	BOOL res = SymGetTypeFromName(ctx->sym_handle, ctx->pdb_base_addr, symbol_name, &si.si);
+	if (res) {
+		return si.si.Address - ctx->pdb_base_addr;
+	}
+	else {
+		return 0;
+	}
 }
 
 DWORD GetFieldOffset(symbol_ctx* ctx, LPCSTR struct_name, LPCWSTR field_name) {

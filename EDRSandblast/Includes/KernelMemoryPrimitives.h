@@ -11,17 +11,16 @@
 
 #define RTCore 0
 #define DBUtil 1
+// Select the driver to use with the following #define
 #define VULN_DRIVER RTCore
 
 #if VULN_DRIVER == RTCore
 #define DEFAULT_DRIVER_FILE TEXT("RTCore64.sys")
-#define GetDriverHandle GetDriverHandle_RTCore
 #define CloseDriverHandle CloseDriverHandle_RTCore
 #define ReadMemoryPrimitive ReadMemoryPrimitive_RTCore
 #define WriteMemoryPrimitive WriteMemoryPrimitive_RTCore
 #elif VULN_DRIVER == DBUtil
 #define DEFAULT_DRIVER_FILE TEXT("DBUtil_2_3.sys")
-#define GetDriverHandle GetDriverHandle_DBUtil
 #define CloseDriverHandle CloseDriverHandle_DBUtil
 #define ReadMemoryPrimitive ReadMemoryPrimitive_DBUtil
 #define WriteMemoryPrimitive WriteMemoryPrimitive_DBUtil

@@ -26,36 +26,37 @@ typedef struct UNICODE_STRING_t {
 } UNICODE_STRING;
 
 #define GET_OFFSET(STRUCTNAME, OFFSETNAME) Offset_ ## STRUCTNAME ## _ ## OFFSETNAME = GetFieldOffset(sym_ctx, #STRUCTNAME, L###OFFSETNAME)
-#define GET_SYMBOL(SYMBOL) Sym_ ## SYMBOL = GetSymbolAddress(sym_ctx, #SYMBOL)
+#define GET_SYMBOL(SYMBOL) Sym_ ## SYMBOL = GetSymbolOffset(sym_ctx, #SYMBOL)
 
 
 typedef struct OB_CALLBACK_t OB_CALLBACK;
 
+typedef PVOID POBJECT_TYPE, POB_PRE_OPERATION_CALLBACK, POB_POST_OPERATION_CALLBACK;
 /*
 * Internal / undocumented version of OB_OPERATION_REGISTRATION
 */
 typedef struct OB_CALLBACK_ENTRY_t {
-    LIST_ENTRY CallbackList;
-    OB_OPERATION Operations;
-    BOOL Enabled;
-    OB_CALLBACK* Entry;
-    PVOID ObjectType; // POBJECT_TYPE
-    PVOID PreOperation; // POB_PRE_OPERATION_CALLBACK
-    PVOID PostOperation; // POB_POST_OPERATION_CALLBACK
-    KSPIN_LOCK Lock;
-}OB_CALLBACK_ENTRY;
+    LIST_ENTRY CallbackList; // linked element tied to _OBJECT_TYPE.CallbackList
+    OB_OPERATION Operations; // bitfield : 1 for Creations, 2 for Duplications
+    BOOL Enabled;            // self-explanatory
+    OB_CALLBACK* Entry;      // points to the structure in which it is included
+    POBJECT_TYPE ObjectType; // points to the object type affected by the callback
+    POB_PRE_OPERATION_CALLBACK PreOperation;      // callback function called before each handle operation
+    POB_POST_OPERATION_CALLBACK PostOperation;     // callback function called after each handle operation
+    KSPIN_LOCK Lock;         // lock object used for synchronization
+} OB_CALLBACK_ENTRY;
 
 /*
 * A callback entry is made of some fields followed by concatenation of callback entry items, and the buffer of the associated Altitude string
 * Internal / undocumented (and compact) version of OB_CALLBACK_REGISTRATION
 */
 typedef struct OB_CALLBACK_t {
-    USHORT Version;
-    USHORT OperationRegistrationCount;
-    PVOID RegistrationContext;
-    UNICODE_STRING AltitudeString;
-    struct OB_CALLBACK_ENTRY_t EntryItems[1]; // has OperationRegistrationCount items
-    WCHAR AltitudeBuffer[1];  // if AltitudeString.MaximumLength bytes long
+    USHORT Version;                           // usually 0x100
+    USHORT OperationRegistrationCount;        // number of registered callbacks
+    PVOID RegistrationContext;                // arbitrary data passed at registration time
+    UNICODE_STRING AltitudeString;            // used to determine callbacks order
+    struct OB_CALLBACK_ENTRY_t EntryItems[1]; // array of OperationRegistrationCount items
+    WCHAR AltitudeBuffer[1];                  // is AltitudeString.MaximumLength bytes long, and pointed by AltitudeString.Buffer
 } OB_CALLBACK;
 
 
@@ -66,8 +67,8 @@ DWORD64 Offset_CALLBACK_ENTRY_ITEM_ObjectType = offsetof(OB_CALLBACK_ENTRY, Obje
 DWORD64 Offset_CALLBACK_ENTRY_ITEM_PreOperation = offsetof(OB_CALLBACK_ENTRY, PreOperation); //POB_PRE_OPERATION_CALLBACK
 DWORD64 Offset_CALLBACK_ENTRY_ITEM_PostOperation = offsetof(OB_CALLBACK_ENTRY, PostOperation); //POB_POST_OPERATION_CALLBACK
 
-//TODO : parse the bitfield in the PDB symbols to ensure "SupportObjectCallbacks" is bit 6
-WORD SupportObjectCallbacks_bit = 0x40;
+//TODO : parse the bitfield in the PDB symbols to ensure "SupportsObjectCallbacks" is bit 6
+WORD SupportsObjectCallbacks_bit = 0x40;
 
 struct ObjTypeSubjectToCallback {
     TCHAR* name;
@@ -140,12 +141,16 @@ void EnumAllObjectsCallbacks() {
             cbEntry = ReadMemoryDWORD64(cbEntry)) {
             DWORD64 ObjectTypeField = ReadMemoryDWORD64(cbEntry + Offset_CALLBACK_ENTRY_ITEM_ObjectType);
             if (ObjectTypeField != ObjectType) {
-                _putts_or_not(TEXT("Unexpected value in callback entry, exiting..."));
+                _putts_or_not(TEXT("Unexpected value in callback entry (ObjectTypeField), exiting..."));
                 exit(1);
             }
             BOOL Enabled = ReadMemoryDWORD(cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled);
-            if (!Enabled) {
+            if (Enabled == FALSE) {
                 continue;
+            }
+            if (Enabled != TRUE) {
+                _putts_or_not(TEXT("Unexpected value in callback entry (Enabled), exiting..."));
+                exit(1);
             }
             OB_OPERATION Operations = ReadMemoryDWORD(cbEntry + Offset_CALLBACK_ENTRY_ITEM_Operations);
             _tprintf_or_not(TEXT("Callback for handle %s%s%s\n"),
@@ -193,7 +198,7 @@ BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundOb
             }
             DWORD64 ObjectTypeField = ReadMemoryDWORD64(cbEntry + Offset_CALLBACK_ENTRY_ITEM_ObjectType);
             if (ObjectTypeField != ObjectType) {
-                _putts_or_not(TEXT("Unexpected value in callback entry, exiting..."));
+                _putts_or_not(TEXT("Unexpected value in callback entry (ObjectTypeField), exiting..."));
                 exit(1);
             }
             DWORD Operations = ReadMemoryDWORD(cbEntry + Offset_CALLBACK_ENTRY_ITEM_Operations);
@@ -209,11 +214,15 @@ BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundOb
                 OperationsString = TEXT("creations & duplications");
                 break;
             default:
-                _putts_or_not(TEXT("Unexpected value in callback entry, exiting..."));
+                _putts_or_not(TEXT("Unexpected value in callback entry (Operations), exiting..."));
                 exit(1);
             }
             _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\t\tCallback at %p for handle %s:\n"), (PVOID)cbEntry, OperationsString);
             BOOL Enabled = ReadMemoryDWORD(cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled);
+            if (Enabled != FALSE && Enabled != TRUE) {
+                _putts_or_not(TEXT("Unexpected value in callback entry (Enabled), exiting..."));
+                exit(1);
+            }
             _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\t\t\tStatus: %s\n"), Enabled ? TEXT("Enabled") : TEXT("Disabled"));
             DWORD64 PreOperation = ReadMemoryDWORD64(cbEntry + Offset_CALLBACK_ENTRY_ITEM_PreOperation);
             if (PreOperation) {
@@ -429,10 +438,10 @@ void EnableDisableProcessAndThreadObjectsCallbacksSupport(BOOL enable) {
         DWORD64 ObjectType_TypeInfo = ObjectType + Offset__OBJECT_TYPE_TypeInfo;
         WORD TypeInfo_ObjectTypeFlags = ReadMemoryWORD(ObjectType_TypeInfo + Offset__OBJECT_TYPE_INITIALIZER_ObjectTypeFlags);
         if (enable) {
-            TypeInfo_ObjectTypeFlags |= SupportObjectCallbacks_bit;
+            TypeInfo_ObjectTypeFlags |= SupportsObjectCallbacks_bit;
         }
         else {
-            TypeInfo_ObjectTypeFlags &= ~SupportObjectCallbacks_bit;
+            TypeInfo_ObjectTypeFlags &= ~SupportsObjectCallbacks_bit;
         }
         WriteMemoryWORD(ObjectType_TypeInfo + Offset__OBJECT_TYPE_INITIALIZER_ObjectTypeFlags, TypeInfo_ObjectTypeFlags);
         _tprintf_or_not(TEXT("[+] Callback support for %s has been %s\n"), ObjectTypesSubjectToCallback[i].name, enable ? TEXT("enabled") : TEXT("disabled"));
@@ -447,7 +456,7 @@ BOOL AreObjectsCallbacksSupportEnabled(struct ObjTypeSubjectToCallback objTypSub
     DWORD64 ObjectType = ReadKernelMemoryDWORD64(objTypSubjCb.offset);
     DWORD64 ObjectType_TypeInfo = ObjectType + Offset__OBJECT_TYPE_TypeInfo;
     WORD TypeInfo_ObjectTypeFlags = ReadMemoryWORD(ObjectType_TypeInfo + Offset__OBJECT_TYPE_INITIALIZER_ObjectTypeFlags);
-    BOOL enable = (TypeInfo_ObjectTypeFlags & SupportObjectCallbacks_bit) != 0;
+    BOOL enable = (TypeInfo_ObjectTypeFlags & SupportsObjectCallbacks_bit) != 0;
     _tprintf_or_not(TEXT("[+] Callback support for %s is %s\n"), objTypSubjCb.name, enable ? TEXT("enabled") : TEXT("disabled"));
 
     return enable;

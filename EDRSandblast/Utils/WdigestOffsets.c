@@ -75,8 +75,8 @@ void LoadWdigestOffsetsFromInternet(BOOL delete_pdb) {
     if (sym_ctx == NULL) {
         return;
     }
-    g_wdigestOffsets.st.g_fParameter_UseLogonCredential = GetSymbolAddress(sym_ctx, "g_fParameter_UseLogonCredential");
-    g_wdigestOffsets.st.g_IsCredGuardEnabled = GetSymbolAddress(sym_ctx, "g_IsCredGuardEnabled");
+    g_wdigestOffsets.st.g_fParameter_UseLogonCredential = GetSymbolOffset(sym_ctx, "g_fParameter_UseLogonCredential");
+    g_wdigestOffsets.st.g_IsCredGuardEnabled = GetSymbolOffset(sym_ctx, "g_IsCredGuardEnabled");
     UnloadSymbols(sym_ctx, delete_pdb);
 }
 
