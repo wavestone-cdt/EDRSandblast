@@ -58,5 +58,5 @@ PVOID PE_functionAddr(PE* pe, LPCSTR functionName);
 VOID PE_parseRelocations(PE* pe);
 VOID PE_rebasePE(PE* pe, LPVOID newBaseAddress);
 PVOID PE_search_pattern(PE* pe, PBYTE pattern, size_t patternSize);
-PVOID PE_search_relative_reference(PE* pe, PVOID target, DWORD relativeReferenceSize);
+DWORD PE_find_static_relative_reference(PE* pe, DWORD targetRVA, DWORD relativeReferenceSize, DWORD fromRVA);
 VOID PE_destroy(PE* pe);
