@@ -7,6 +7,7 @@
 #include "HttpClient.h"
 #include "PEParser.h"
 #include "PrintFunctions.h"
+#include "PdbParser.h"
 
 #include "PdbSymbols.h"
 
@@ -59,10 +60,26 @@ symbol_ctx* LoadSymbolsFromPE(PE* pe) {
 	if (ctx == NULL) {
 		return NULL;
 	}
+	if (strchr(pe->codeviewDebugInfo->pdbName, '\\')) {
+		// path is strange, PDB file won't be found on Microsoft Symbol Server, better give up...
+		return NULL;
+	}
 	int size_needed = MultiByteToWideChar(CP_UTF8, 0, pe->codeviewDebugInfo->pdbName, -1, NULL, 0);
 	ctx->pdb_name_w = calloc(size_needed, sizeof(WCHAR));
 	MultiByteToWideChar(CP_UTF8, 0, pe->codeviewDebugInfo->pdbName, -1, ctx->pdb_name_w, size_needed);
+	BOOL needPdbDownload = FALSE;
 	if (!FileExistsW(ctx->pdb_name_w)) {
+		needPdbDownload = TRUE;
+	}
+	else {
+		// PDB file exists, but is it the right version ?
+		GUID* guid = extractGuidFromPdb(ctx->pdb_name_w);
+		if (!guid || memcmp(guid, &pe->codeviewDebugInfo->guid, sizeof(GUID))) {
+			needPdbDownload = TRUE;
+		}
+		free(guid);
+	}
+	if (needPdbDownload){
 		PBYTE file;
 		SIZE_T file_size;
 		BOOL res = DownloadPDBFromPE(pe, &file, &file_size);
@@ -72,9 +89,6 @@ symbol_ctx* LoadSymbolsFromPE(PE* pe) {
 		}
 		WriteFullFileW(ctx->pdb_name_w, file, file_size);
 		free(file);
-	}
-	else {
-		//TODO : check if exisiting PDB corresponds to the file version
 	}
 	DWORD64 asked_pdb_base_addr = 0x1337000;
 	DWORD pdb_image_size = MAXDWORD;

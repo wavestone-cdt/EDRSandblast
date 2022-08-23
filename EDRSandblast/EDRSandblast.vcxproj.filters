@@ -126,6 +126,9 @@
     <ClCompile Include="KernellandBypass\KernelDSE.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\PdbParser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Includes\CredGuard.h">
@@ -246,6 +249,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Includes\PrintFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\PdbParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

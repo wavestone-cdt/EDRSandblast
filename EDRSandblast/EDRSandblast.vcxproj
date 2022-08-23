@@ -178,6 +178,7 @@
     <ClCompile Include="LSASSProtectionBypass\CredGuard.c" />
     <ClCompile Include="LSASSProtectionBypass\RunAsPPL.c" />
     <ClCompile Include="Utils\ListUtils.c" />
+    <ClCompile Include="Utils\PdbParser.c" />
     <ClCompile Include="Utils\RemotePEBBrowser.c" />
     <ClCompile Include="Utils\PdbSymbols.c" />
     <ClCompile Include="UserlandBypass\Firewalling.c" />
@@ -208,6 +209,7 @@
     <ClInclude Include="Includes\DriverRTCore.h" />
     <ClInclude Include="Includes\KernelDSE.h" />
     <ClInclude Include="Includes\PrintFunctions.h" />
+    <ClInclude Include="Includes\PdbParser.h" />
     <ClInclude Include="Includes\ProcessDumpDirectSyscalls.h" />
     <ClInclude Include="Includes\FileUtils.h" />
     <ClInclude Include="Includes\HttpClient.h" />

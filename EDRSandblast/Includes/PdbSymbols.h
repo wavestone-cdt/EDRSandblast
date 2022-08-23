@@ -1,4 +1,5 @@
 #pragma once
+#include "PEParser.h"
 
 typedef struct symbol_ctx_t {
 	LPWSTR pdb_name_w;
@@ -6,6 +7,7 @@ typedef struct symbol_ctx_t {
 	HANDLE sym_handle;
 } symbol_ctx;
 
+symbol_ctx* LoadSymbolsFromPE(PE* pe);
 symbol_ctx* LoadSymbolsFromImageFile(LPCWSTR image_file_path);
 DWORD64 GetSymbolOffset(symbol_ctx* ctx, LPCSTR symbol_name);
 DWORD GetFieldOffset(symbol_ctx* ctx, LPCSTR struct_name, LPCWSTR field_name);
