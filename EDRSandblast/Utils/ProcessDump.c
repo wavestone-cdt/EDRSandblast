@@ -55,8 +55,8 @@ DWORD WINAPI dumpProcess(LPTSTR processName, TCHAR* outputDumpFile) {
     // Retrieve information about the first process,
     // and exit if unsuccessful
     if (!Process32First(hProcessSnap, &pe32)) {
-        _tprintf_or_not(TEXT("[!] %s dump failed: obtained invalid process handle\n"), processName); // show cause of failure
-        CloseHandle(hProcessSnap);          // clean the snapshot object
+        _tprintf_or_not(TEXT("[!] %s dump failed: obtained invalid process handle\n"), processName);
+        CloseHandle(hProcessSnap);
         return 1;
     }
 
@@ -64,7 +64,13 @@ DWORD WINAPI dumpProcess(LPTSTR processName, TCHAR* outputDumpFile) {
     //PE* dbghelpPe = PE_create(hDbghelp, TRUE);
     //_MiniDumpWriteDump MiniDumpWriteDumpFunc = (_MiniDumpWriteDump) PE_functionAddr(dbghelpPe, "MiniDumpWriteDump");
 
-    _MiniDumpWriteDump MiniDumpWriteDumpFunc = (_MiniDumpWriteDump) GetProcAddress(LoadLibrary(TEXT("dbghelp.dll")), "MiniDumpWriteDump");
+    HANDLE hDbghelp = LoadLibrary(TEXT("dbghelp.dll"));
+    if (hDbghelp == NULL) {
+        _tprintf_or_not(TEXT("[!] %s dump failed: could not load dbghelp.dll\n"), processName);
+        CloseHandle(hProcessSnap);
+        return 1;
+    }
+    _MiniDumpWriteDump MiniDumpWriteDumpFunc = (_MiniDumpWriteDump) GetProcAddress(hDbghelp, "MiniDumpWriteDump");
 
     // Now walk the snapshot of processes, and look for the specified process.
     do {

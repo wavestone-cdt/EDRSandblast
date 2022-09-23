@@ -397,13 +397,14 @@ Dump options:\n\
         return EXIT_FAILURE;
     }
     // TODO: set isSafeToExecutePayloadUserland by unhook to TRUE / FALSE if there are still hooks.
+
     BOOL isSafeToExecutePayloadUserland = TRUE;
     BOOL isSafeToExecutePayloadKernelland = TRUE;
 
     if (userMode) {
         _putts_or_not(TEXT("[===== USER MODE =====]\n"));
         _putts_or_not(TEXT("[+] Detecting userland hooks in all loaded DLLs..."));
-        hooks = searchHooks(NULL);
+        hooks = searchHooks(NULL); //TODO : change searchHooks to notify if code modifications have been found but not correctly identified as hooks
         _putts_or_not(TEXT(""));
 
         if (startMode != audit && unhook_method != UNHOOK_NONE) {
@@ -412,8 +413,10 @@ Dump options:\n\
             }
             for (HOOK* ptr = hooks; ptr->disk_function != NULL; ptr++) {
                 printf_or_not("[+] [Hooks]\tUnhooking %s using method %ld...\n", ptr->functionName, unhook_method);
-                // TODO: return if all hook could be removed and set isSafeToExecutePayloadUserland.
-                unhook(ptr, unhook_method);
+                BOOL unhookSuccessful = unhook(ptr, unhook_method);
+                if (!unhookSuccessful) {
+                    isSafeToExecutePayloadUserland = FALSE;
+                }
             }
         }
         _putts_or_not(TEXT(""));

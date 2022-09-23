@@ -155,19 +155,19 @@ VOID PE_rebasePE(PE* pe, LPVOID newBaseAddress)
     assert(pe->relocations != NULL);
     PVOID oldBaseAddress = pe->baseAddress;
     pe->baseAddress = newBaseAddress;
+    intptr_t relativeOffset = ((intptr_t)newBaseAddress) - ((intptr_t)oldBaseAddress);
     for (DWORD i = 0; i < pe->nbRelocations; i++) {
         switch (pe->relocations[i].Type) {
         case IMAGE_REL_BASED_ABSOLUTE:
             break;
         case IMAGE_REL_BASED_HIGHLOW:
             relocDwAddress = (DWORD*)PE_RVA_to_Addr(pe, pe->relocations[i].RVA);
-            intptr_t relativeOffset = ((intptr_t)newBaseAddress) - ((intptr_t)oldBaseAddress);
             assert(relativeOffset <= MAXDWORD);
             *relocDwAddress += (DWORD)relativeOffset;
             break;
         case IMAGE_REL_BASED_DIR64:
             relocQwAddress = (QWORD*)PE_RVA_to_Addr(pe, pe->relocations[i].RVA);
-            *relocQwAddress += ((intptr_t)newBaseAddress) - ((intptr_t)oldBaseAddress);
+            *relocQwAddress += (QWORD)relativeOffset;
             break;
         default:
             printf_or_not("Unsupported relocation : 0x%x\nExiting...\n", pe->relocations[i].Type);

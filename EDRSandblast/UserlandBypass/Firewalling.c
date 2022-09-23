@@ -166,6 +166,10 @@ NTSTATUS EnumEDRServices(fwBlockingRulesList* sFWEntries) {
         _tprintf_or_not(TEXT("[!] Could not enumerate EDR services (EnumServicesStatusEx failed: 0x%08lx)\n"), dwError);
         goto cleanup;
     }
+    if (dwByteCount * sizeof(BYTE) < lpServicesCount * sizeof(ENUM_SERVICE_STATUS_PROCESS)) {
+        _putts(TEXT("[!] Could not enumerate EDR services (problem in allocation)"));
+        goto cleanup;
+    }
 
     for (DWORD dwIndex = 0; dwIndex < lpServicesCount; dwIndex++) {
         dwByteCount = 0;

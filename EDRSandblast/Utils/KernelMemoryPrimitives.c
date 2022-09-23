@@ -65,5 +65,6 @@ WriteKernelMemoryType(DWORD);
 WriteKernelMemoryType(DWORD64);
 
 BOOL TestReadPrimitive() {
-    return ReadKernelMemoryWORD(0) == *(WORD*)"MZ";
+    WORD startWord = ReadKernelMemoryWORD(0);
+    return ((startWord & 0xFF) == 'M') && ((startWord >> 8) == 'Z');
 }

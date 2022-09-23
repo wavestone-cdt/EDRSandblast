@@ -65,7 +65,7 @@ SYSCALL* GetSyscallTable(PDWORD syscallTableSize) {
     // Store all Zw* function as a syscall
     for (DWORD nameOrdinal = 0; nameOrdinal < ntdll_mem->exportedNamesLength; nameOrdinal++) {
         LPCSTR functionName = PE_RVA_to_Addr(ntdll_mem, ntdll_mem->exportedNames[nameOrdinal]);
-        if (*(WORD*)functionName == *((WORD*)"Zw")) {
+        if (functionName[0]=='Z' && functionName[1] == 'w') {
             if (g_nbSyscalls == g_nbSyscallsMax) {
                 g_nbSyscallsMax *= 2;
                 PVOID tmp = realloc(g_syscalls, g_nbSyscallsMax * sizeof(SYSCALL));
@@ -91,7 +91,9 @@ SYSCALL* GetSyscallTable(PDWORD syscallTableSize) {
 
     // Deduce the syscall numbers from order in table
     for (DWORD j = 0; j < g_nbSyscalls; j++) {
+#pragma warning(disable : 6386) //compiler analysis is wrong for some reason (or maybe I am)
         g_syscalls[j].Number = j;
+#pragma warning(disable : 6386)
     }
     // Sort the function back in alphabetical order
     qsort(g_syscalls, g_nbSyscalls, sizeof(SYSCALL), CmpSyscallsByName);
@@ -138,8 +140,9 @@ DWORD GetSyscallNumberFromExportOrdering(LPCSTR ntFunctionName) {
     if (zwFunctionName == NULL) {
         return INVALID_SYSCALL_NUMBER;
     }
-    *(WORD*)zwFunctionName = *(WORD*)"Zw";
-
+    zwFunctionName[0] = 'Z';
+    zwFunctionName[1] = 'w';
+    
     DWORD down = 0;
     DWORD up = syscallTableSize;
     while (up - down > 1) {

@@ -56,7 +56,7 @@ BOOL SW2_PopulateSyscallList(void)
     PSW2_SYSCALL_ENTRY Entries = SW2_SyscallList.Entries;
     for (DWORD nameOrdinal = 0; nameOrdinal < ntdll->exportedNamesLength; nameOrdinal++) {
         LPCSTR functionName = PE_RVA_to_Addr(ntdll, ntdll->exportedNames[nameOrdinal]);
-        if (*(WORD*)functionName == *((WORD*)"Zw")) {
+        if ((functionName[0] == 'Z') && (functionName[1] == 'w')) {
             Entries[i].Hash = SW2_HashSyscall(functionName);
             Entries[i].RVA = PE_functionRVA(ntdll, functionName);
             i++;

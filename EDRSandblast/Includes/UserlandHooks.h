@@ -55,8 +55,7 @@ PVOID hookResolver(PBYTE hookAddr);
 pNtProtectVirtualMemory getSafeVirtualProtectUsingTrampoline(DWORD unhook_method);
 PVOID searchTrampolineInExecutableMemory(PVOID pattern, size_t patternSize, PVOID expectedTarget);
 PBYTE findDiff(PBYTE mem, PBYTE disk, size_t len, size_t* lenPatch);
-VOID unhook(HOOK* hook, UNHOOK_METHOD unhook_method);
-
+BOOL _Check_return_ unhook(_In_ HOOK* hook, UNHOOK_METHOD unhook_method);
 
 /*
 * Cache for NTDLL PE (accessed often)
