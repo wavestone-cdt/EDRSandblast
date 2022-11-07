@@ -9,7 +9,7 @@
 
 
 BOOL HttpsDownloadFullFile(LPCWSTR domain, LPCWSTR uri, PBYTE* output, SIZE_T* output_size) {
-	wprintf_or_not(L"Downloading https://%s%s...\n", domain, uri);
+	///wprintf_or_not(L"Downloading https://%s%s...\n", domain, uri);
 	// Get proxy configuration
 	WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig;
 	WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);

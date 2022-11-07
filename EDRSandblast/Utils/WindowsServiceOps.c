@@ -38,6 +38,13 @@ BOOL ServiceAddEveryoneAccess(SC_HANDLE serviceHandle) {
 DWORD ServiceInstall(PCTSTR serviceName, PCTSTR displayName, PCTSTR binPath, DWORD serviceType, DWORD startType, BOOL startIt) {
     SC_HANDLE hSC = NULL;
     SC_HANDLE hS = NULL;
+    TCHAR absoluteBinPath[MAX_PATH] = { 0 };
+    DWORD absLen = GetFullPathName(binPath, _countof(absoluteBinPath), absoluteBinPath, NULL);
+    if (absLen == 0) {
+        DWORD lastError = GetLastError();
+        _tprintf_or_not(TEXT("[*] Error 0x%lx converting \'%s\' path to absolute ...\n"), lastError, binPath);
+        return lastError;
+    }
 
     hSC = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
     if (hSC) {
@@ -50,7 +57,7 @@ DWORD ServiceInstall(PCTSTR serviceName, PCTSTR displayName, PCTSTR binPath, DWO
             if (GetLastError() == ERROR_SERVICE_DOES_NOT_EXIST) {
                 _tprintf_or_not(TEXT("[*] \'%s\' service was not present\n"), serviceName);
 
-                hS = CreateService(hSC, serviceName, displayName, READ_CONTROL | WRITE_DAC | SERVICE_START, serviceType, startType, SERVICE_ERROR_NORMAL, binPath, NULL, NULL, NULL, NULL, NULL);
+                hS = CreateService(hSC, serviceName, displayName, READ_CONTROL | WRITE_DAC | SERVICE_START, serviceType, startType, SERVICE_ERROR_NORMAL, absoluteBinPath, NULL, NULL, NULL, NULL, NULL);
 
                 if (hS) {
                     _tprintf_or_not(TEXT("[+] \'%s\' service is successfully registered\n"), serviceName);
