@@ -3,7 +3,7 @@
 */
 
 #include <Windows.h>
-#include <PathCch.h>
+#include <shlwapi.h>
 #include <stdio.h>
 
 #include "../EDRSandblast.h"
@@ -226,10 +226,10 @@ VOID unhook(HOOK* hook, UNHOOK_METHOD unhook_method) {
 
     case UNHOOK_WITH_DUPLICATE_NTPROTECTVIRTUALMEMORY:
         GetSystemDirectoryW(ntdllFilePath, _countof(ntdllFilePath));
-        PathCchCombine(ntdllFilePath, _countof(ntdllFilePath), ntdllFilePath, L"ntdll.dll");
+        PathCombineW(ntdllFilePath, ntdllFilePath, L"ntdll.dll");
 
         GetTempPathW(MAX_PATH, ntdlolFilePath);
-        PathCchCombine(ntdlolFilePath, _countof(ntdlolFilePath), ntdlolFilePath, ntdlolFileName);
+        PathCombineW(ntdlolFilePath, ntdlolFilePath, ntdlolFileName);
 
         CopyFileW(ntdllFilePath, ntdlolFilePath, FALSE);
         secondNtdll = LoadLibraryW(ntdlolFilePath);

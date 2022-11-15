@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <Tchar.h>
 #include <psapi.h>
-#include <PathCch.h>
 #include <shlwapi.h>
 #include <time.h>
 
@@ -349,8 +348,8 @@ Other options:\n\
         _putts_or_not(TEXT("[===== KERNEL MODE =====]\n"));
 
         if (_tcslen(driverPath) == 0) {
-            PathCchAppend(driverPath, _countof(driverPath), currentFolderPath);
-            PathCchAppend(driverPath, _countof(driverPath), driverDefaultName);
+            PathAppend(driverPath, currentFolderPath);
+            PathAppend(driverPath, driverDefaultName);
         }
         if (!FileExists(driverPath)) {
             _tprintf_or_not(TEXT("[!] Required driver file not present at %s\nExiting...\n"), driverPath);
@@ -359,8 +358,8 @@ Other options:\n\
 
         if (_tcslen(ntoskrnlOffsetCSVPath) == 0) {
             TCHAR offsetCSVName[] = TEXT("NtoskrnlOffsets.csv");
-            PathCchAppend(ntoskrnlOffsetCSVPath, _countof(ntoskrnlOffsetCSVPath), currentFolderPath);
-            PathCchAppend(ntoskrnlOffsetCSVPath, _countof(ntoskrnlOffsetCSVPath), offsetCSVName);
+            PathAppend(ntoskrnlOffsetCSVPath, currentFolderPath);
+            PathAppend(ntoskrnlOffsetCSVPath, offsetCSVName);
         }
 
         _putts_or_not(TEXT("[+] Setting up prerequisites for the kernel read/write primitives..."));
@@ -494,11 +493,7 @@ Other options:\n\
                 // Determine dump path based on specified process name.
                 if (_tcslen(outputPath) == 0) {
                     TCHAR* processNameFilename = _tcsdup(processName);
-                    hrStatus = PathCchRemoveExtension(processNameFilename, _tcslen(processNameFilename) + 1);
-                    if (FAILED(hrStatus)) {
-                        free(processNameFilename);
-                        processNameFilename = _tcsdup(TEXT("dmp.txt"));
-                    }
+                    PathRemoveExtension(processNameFilename);
                     _tcscat_s(outputPath, _countof(outputPath), currentFolderPath);
                     _tcscat_s(outputPath, _countof(outputPath), TEXT("\\"));
                     _tcscat_s(outputPath, _countof(outputPath), processNameFilename);

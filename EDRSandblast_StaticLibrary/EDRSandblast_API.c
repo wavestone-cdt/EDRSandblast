@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include <PathCch.h>
+#include <shlwapi.h>
 
 #include "../EDRSandblast/EDRSandblast.h"
 #include "../EDRSandblast/Includes/CredGuard.h"
@@ -554,7 +554,7 @@ EDRSB_STATUS Usermode_GetSafeNtFunc(_Inout_ EDRSB_CONTEXT* ctx, _In_ LPCSTR func
     switch (technique) {
     case EDRSB_UMTECH_Copy_ntdll_and_load:
         GetTempPathW(MAX_PATH, tempDLLFilePath);
-        PathCchCombine(tempDLLFilePath, _countof(tempDLLFilePath), tempDLLFilePath, L"ntdlol.txt");//TODO : make it configurable
+        PathCombineW(tempDLLFilePath, tempDLLFilePath, L"ntdlol.txt");//TODO : make it configurable
         return _Usermode_GetSafeNtFunction_with_ntdll_copy(ctx, tempDLLFilePath, functionName, function);
     case EDRSB_UMTECH_Allocate_trampoline:
         return _GetSafeNtFunctionUsingTrampoline(FALSE, functionName, function);
@@ -723,7 +723,7 @@ EDRSB_STATUS _Usermode_GetSafeNtFunction_with_ntdll_copy(_Inout_ EDRSB_CONTEXT* 
         WCHAR ntdllFilePath[MAX_PATH] = { 0 };
 
         GetSystemDirectoryW(ntdllFilePath, _countof(ntdllFilePath));
-        PathCchCombine(ntdllFilePath, _countof(ntdllFilePath), ntdllFilePath, L"ntdll.dll");
+        PathCombineW(ntdllFilePath, ntdllFilePath, L"ntdll.dll");
 
         CopyFileW(ntdllFilePath, tempDLLFilePath, FALSE);
         secondNtdll = LoadLibraryW(tempDLLFilePath);
