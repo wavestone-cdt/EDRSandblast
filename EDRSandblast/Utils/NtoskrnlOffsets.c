@@ -28,9 +28,13 @@ void LoadNtoskrnlOffsetsFromFile(TCHAR* ntoskrnlOffsetFilename) {
         return;
     }
 
-    TCHAR lineNtoskrnlVersion[256];
+    TCHAR lineNtoskrnlVersion[2048];
     TCHAR line[2048];
     while (_fgetts(line, _countof(line), offsetFileStream)) {
+        if (_tcsncmp(line, TEXT("ntoskrnl"), _countof(TEXT("ntoskrnl")) - 1)) {
+            _putts_or_not(TEXT("[-] CSV file format is unexpected!\n"));
+            break;
+        }
         TCHAR* dupline = _tcsdup(line);
         TCHAR* tmpBuffer = NULL;
         _tcscpy_s(lineNtoskrnlVersion, _countof(lineNtoskrnlVersion), _tcstok_s(dupline, TEXT(","), &tmpBuffer));
