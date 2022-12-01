@@ -5,16 +5,21 @@ import sys
 
 from requests import get
 from gzip import decompress
-from json import loads, dumps
+from json import loads
 import subprocess
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+
 CSVLock = threading.Lock()
 
 machineType = dict(x86=332, x64=34404)
 knownImageVersions = dict(ntoskrnl=list(), wdigest=list())
 extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll")
+
+def printl(s, lock, **kwargs):
+    with lock:
+        print(s, **kwargs)
 
 def run(args, **kargs):
     """Wrap subprocess.run to works on Windows and Linux"""
@@ -23,20 +28,21 @@ def run(args, **kargs):
     shell = sys.platform in ["win32"]
     return subprocess.run(args, shell=shell, **kargs)
 
-def downloadSpecificFile(entry, pe_basename, pe_ext, knownPEVersions, output_folder):
+def downloadSpecificFile(entry, pe_basename, pe_ext, knownPEVersions, output_folder, lock):
     pe_name = f'{pe_basename}.{pe_ext}'
 
     if 'fileInfo' not in entry:
-        # print(f'[!] Entry {pe_hash} has no fileInfo, skipping it.')
+        # printl(f'[!] Entry {pe_hash} has no fileInfo, skipping it.', lock)
         return "SKIP"
     if 'timestamp' not in entry['fileInfo']:
-        # print(f'[!] Entry {pe_hash} has no timestamp, skipping it.')
+        # printl(f'[!] Entry has no timestamp, skipping it.', lock)
         return "SKIP"
     timestamp = entry['fileInfo']['timestamp']
     if 'virtualSize' not in entry['fileInfo']:
-        # print(f'[!] Entry {pe_hash} has no virtualSize, skipping it.')
+        # printl(f'[!] Entry has no virtualSize, skipping it.', lock)
         return "SKIP"
     if "machineType" not in entry["fileInfo"] or entry["fileInfo"]["machineType"] != machineType["x64"]:
+        # printl('No machine Type', lock)
         return "SKIP"
     virtual_size = entry['fileInfo']['virtualSize']
     file_id = hex(timestamp).replace('0x','').zfill(8).upper() + hex(virtual_size).replace('0x','')
@@ -51,23 +57,23 @@ def downloadSpecificFile(entry, pe_basename, pe_ext, knownPEVersions, output_fol
     
     # If the PE version is already known, skip download.
     if output_file in knownPEVersions:
-        print(f'[*] Skipping download of known {pe_name} version: {output_file}')
+        printl(f'[*] Skipping download of known {pe_name} version: {output_file}', lock)
         return "SKIP"
     
     output_file_path = os.path.join(output_folder, output_file)
     if os.path.isfile(output_file_path):
-        print(f"[*] Skipping {output_file_path} which already exists")
+        printl(f"[*] Skipping {output_file_path} which already exists", lock)
         return "SKIP"
     
-    print(f'[*] Downloading {pe_name} version {version}... ')
+    # printl(f'[*] Downloading {pe_name} version {version}... ', lock)
     try:
         peContent = get(url)
         with open(output_file_path, 'wb') as f:
             f.write(peContent.content)
-        print(f'[+] Finished download of {pe_name} version {version} (file: {output_file})!')
+        printl(f'[+] Finished download of {pe_name} version {version} (file: {output_file})!', lock)
         return "OK"
-    except Exception:
-        print(f'[!] ERROR : Could not download {pe_name} version {version} (URL: {url}).')
+    except Exception as e:
+        printl(f'[!] ERROR : Could not download {pe_name} version {version} (URL: {url}): {str(e)}.', lock)
         return "KO"
 
 def downloadPEFileFromMS(pe_basename, pe_ext, knownPEVersions, output_folder):
@@ -80,13 +86,16 @@ def downloadPEFileFromMS(pe_basename, pe_ext, knownPEVersions, output_folder):
     pe_list = loads(pe_json)
 
     futures = dict()
+    i = 0
+    futures = set()
+    lock = threading.Lock()
     with ThreadPoolExecutor() as executor:
         for pe_hash in pe_list:
             entry = pe_list[pe_hash]
-            futures[pe_hash] = executor.submit(downloadSpecificFile,entry, pe_basename, pe_ext, knownPEVersions, output_folder)
-    for (i,f) in enumerate(futures):
-        res = futures[f].result()
-        print(f"{i+1}/{len(futures)}", end="\r")
+            futures.add(executor.submit(downloadSpecificFile, entry, pe_basename, pe_ext, knownPEVersions, output_folder, lock))
+        for future in as_completed(futures):
+            printl(f"{i + 1}/{len(pe_list)}", lock, end="\r")
+            i += 1
 
 def get_symbol_offset(symbols_info, symbol_name):
     for line in symbols_info:
@@ -149,7 +158,7 @@ def extractOffsets(input_file, output_file, mode):
                 return
             
             
-            print(f'[*] Processing {imageType} version {imageVersion} (file: {input_file})')
+            # print(f'[*] Processing {imageType} version {imageVersion} (file: {input_file})')
             # download the PDB if needed
             r = run(["r2", "-c", "idpd", "-qq", input_file], capture_output=True)
             # dump all symbols
@@ -199,8 +208,8 @@ def extractOffsets(input_file, output_file, mode):
         print(f'[*] Processing folder: {input_file}')
         with ThreadPoolExecutor() as extractorPool:
             args = [(os.path.join(input_file, file), output_file, mode) for file in os.listdir(input_file)]
-            for (i,res) in enumerate(extractorPool.map(extractOffsets, *zip(*args))):
-                print(f"{i+1}/{len(args)}", end="\r")
+            for (i, res) in enumerate(extractorPool.map(extractOffsets, *zip(*args))):
+                print(f"{i + 1}/{len(args)}", end="\r")
         print(f'[+] Finished processing of folder {input_file}!')
 
     else:
