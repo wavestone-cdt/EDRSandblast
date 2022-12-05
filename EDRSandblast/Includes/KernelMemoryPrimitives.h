@@ -11,8 +11,10 @@
 
 #define RTCore 0
 #define DBUtil 1
+#define GDRV 2
 // Select the driver to use with the following #define
-#define VULN_DRIVER RTCore
+//#define VULN_DRIVER RTCore
+#define VULN_DRIVER GDRV
 
 #if VULN_DRIVER == RTCore
 #define DEFAULT_DRIVER_FILE TEXT("RTCore64.sys")
@@ -24,8 +26,12 @@
 #define CloseDriverHandle CloseDriverHandle_DBUtil
 #define ReadMemoryPrimitive ReadMemoryPrimitive_DBUtil
 #define WriteMemoryPrimitive WriteMemoryPrimitive_DBUtil
+#elif VULN_DRIVER == GDRV
+#define DEFAULT_DRIVER_FILE TEXT("gdrv.sys")
+#define CloseDriverHandle CloseDriverHandle_GDRV
+#define ReadMemoryPrimitive ReadMemoryPrimitive_GDRV
+#define WriteMemoryPrimitive WriteMemoryPrimitive_GDRV
 #endif
-
 
 BYTE    ReadMemoryBYTE(DWORD64 Address);
 WORD    ReadMemoryWORD(DWORD64 Address);
