@@ -117,7 +117,13 @@
     <ClCompile Include="UserlandBypass\ProcessDumpDirectSyscalls.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\CiOffsets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Drivers\DriverGDRV.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KernellandBypass\KernelDSE.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -231,6 +237,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="EDRSandblast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\CiOffsets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\KernelDSE.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Includes\DriverGDRV.h">

@@ -23,3 +23,8 @@ BOOL InstallVulnerableDriver(TCHAR* driverPath);
 
 BOOL UninstallVulnerableDriver(void);
 BOOL IsDriverServiceRunning(LPTSTR driverPath, LPTSTR* serviceName);
+// evil driver install
+TCHAR* GetEvilDriverServiceName(void);
+void SetEvilDriverServiceName(_In_z_ TCHAR* newName);
+BOOL InstallEvilDriver(TCHAR* driverPath);
+BOOL UninstallEvilDriver(void);
