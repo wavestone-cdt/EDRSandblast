@@ -94,3 +94,6 @@ void RemoveEDRImageNotifyCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers, BOOL 
 BOOL EnumEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers, BOOL verbose);
 
 void RemoveEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers);
+
+// Helps at locating some DLL in the kernel, for example CI.dll
+DWORD64 GetNotifyRoutineAddress(enum NtoskrnlOffsetType nrt);

@@ -106,3 +106,4 @@ DWORD64 GetKernelFunctionAddress(LPCSTR function) {
     // _tprintf_or_not(TEXT("[+] %s address: 0x%I64x\n"), function, address);
     return address;
 }
+

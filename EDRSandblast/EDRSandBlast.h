@@ -8,6 +8,7 @@ typedef enum _START_MODE {
     credguard,
     audit,
     firewall,
+    load,
     none
 } START_MODE;
 

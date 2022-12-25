@@ -517,3 +517,4 @@ ntoskrnl_9600-19426.exe,2dbb10,2db910,2db710,67a,0,20,50,34e030,34e048,c8
 ntoskrnl_9600-20144.exe,2dac50,2daa50,2da850,67a,0,20,50,34d030,34d048,c8
 ntoskrnl_7601-17514.exe,ffffffffffffffff,ffffffffffffffff,ffffffffffffffff,0,0,8,38,16002c,160028,80
 ntoskrnl_6003-21251.exe,1a9d00,1a9ae0,1a9a80,0,0,10,50,22c020,22c040,228
+ntoskrnl_19041-2364.exe,cec460,cec260,cec060,87a,c197d8,20,60,cfc410,cfc440,c8
