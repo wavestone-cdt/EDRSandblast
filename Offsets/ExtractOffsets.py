@@ -41,6 +41,8 @@ def downloadSpecificFile(entry, pe_basename, pe_ext, knownPEVersions, output_fol
     virtual_size = entry['fileInfo']['virtualSize']
     file_id = hex(timestamp).replace('0x','').zfill(8).upper() + hex(virtual_size).replace('0x','')
     url = 'https://msdl.microsoft.com/download/symbols/' + pe_name + '/' + file_id + '/' + pe_name
+    if "version" not in entry['fileInfo']:
+        return "SKIP"
     version = entry['fileInfo']['version'].split(' ')[0]
     
     # Output file format: <PE>_build-revision.<exe | dll>
@@ -240,7 +242,12 @@ if __name__ == '__main__':
         print(r.stderr)
         exit(r.returncode)
     output = r.stdout.decode()
-    ma,me,mi = map(int, output.splitlines()[0].split(" ")[0].split("."))
+    """
+    can be:
+     * a series of lines like "5.5.0  r2\n5.5.0  r_lib\n[...]"
+     * a simple tag "5.8.2-158-gca9763f20d"
+    """
+    ma,me,mi = map(int, output.splitlines()[0].split(" ")[0].split("-")[0].split("."))
     if (ma, me, mi) < (5,0,0):
         print("WARNING : This script has been tested with radare2 5.0.0 (works) and 4.3.1 (does NOT work)")
         print(f"You have version {ma}.{me}.{mi}, if is does not work correctly, meaning most of the offsets are not found (i.e. 0), check radare2's 'idpi' command output and modify get_symbol_offset() & get_field_offset() to parse symbols correctly")
