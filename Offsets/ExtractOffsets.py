@@ -10,7 +10,7 @@ import subprocess
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
-
+THREADS_LIMIT = None
 CSVLock = threading.Lock()
 
 machineType = dict(x86=332, x64=34404)
@@ -102,7 +102,7 @@ def downloadPEFileFromMS(pe_basename, pe_ext, knownPEVersions, output_folder):
     i = 0
     futures = set()
     lock = threading.Lock()
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=THREADS_LIMIT) as executor:
         for pe_hash in pe_list:
             entry = pe_list[pe_hash]
             futures.add(executor.submit(downloadSpecificFile, entry, pe_basename, pe_ext, knownPEVersions, output_folder, lock))
@@ -227,7 +227,7 @@ def extractOffsets(input_file, output_file, mode):
 
     elif os.path.isdir(input_file):
         print(f'[*] Processing folder: {input_file}')
-        with ThreadPoolExecutor() as extractorPool:
+        with ThreadPoolExecutor(max_workers=THREADS_LIMIT) as extractorPool:
             args = [(os.path.join(input_file, file), output_file, mode) for file in os.listdir(input_file)]
             for (i, res) in enumerate(extractorPool.map(extractOffsets, *zip(*args))):
                 print(f"{i + 1}/{len(args)}", end="\r")
