@@ -14,8 +14,8 @@ import threading
 CSVLock = threading.Lock()
 
 machineType = dict(x86=332, x64=34404)
-knownImageVersions = dict(ntoskrnl=list(), wdigest=list(),ci=list())
-extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll",ci="dll")
+knownImageVersions = dict(ntoskrnl=list(), wdigest=list(), ci=list())
+extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll", ci="dll")
 
 def find(key, value):
     for k, v in value.items():
@@ -144,13 +144,14 @@ def extractOffsets(input_file, output_file, mode):
             # check image type (ntoskrnl, wdigest, etc.)
             r = run(["r2", "-c", "iE", "-qq", input_file], capture_output=True)
             for line in r.stdout.decode().splitlines():
+                line = line.lower()
                 if "ntoskrnl.exe" in line:
                     imageType = "ntoskrnl"
                     break
                 elif "wdigest.dll" in line:
                     imageType = "wdigest"
                     break
-                elif "CI.dll" in line:
+                elif "ci.dll" in line:
                     imageType = "ci"
                     break
             else:
@@ -199,7 +200,7 @@ def extractOffsets(input_file, output_file, mode):
                 ]
             elif imageType == "ci":
                 symbols = [
-                ("g_CiOptions",get_symbol_offset), 
+                ("g_CiOptions",get_symbol_offset),
                 ]
                             
                 
@@ -250,7 +251,7 @@ def loadOffsetsFromCSV(loadedVersions, CSVPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('mode', help='ntoskrnl or wdigest or ci. Mode to download and extract offsets for either ntoskrnl or wdigest or ci')
+    parser.add_argument('mode', help='"ntoskrnl", "wdigest" or "ci". Mode to download and extract offsets from either ntoskrnl.exe, wdigest.dll or ci.dll')
     parser.add_argument('-i', '--input', dest='input', required=True,
                         help='Single file or directory containing ntoskrnl.exe / wdigest.dll / ci.dll to extract offsets from. If in download mode, the PE downloaded from MS symbols servers will be placed in this folder.')
     parser.add_argument('-o', '--output', dest='output', 
@@ -261,7 +262,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     mode = args.mode.lower()
     if mode not in knownImageVersions:
-        print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: "ntoskrnl" and "wdigest" and "ci"')      
+        print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: "ntoskrnl", "wdigest" and "ci"')
         exit(1)
     
     # check R2 version
