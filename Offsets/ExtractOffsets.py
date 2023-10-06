@@ -14,8 +14,8 @@ import threading
 CSVLock = threading.Lock()
 
 machineType = dict(x86=332, x64=34404)
-knownImageVersions = dict(ntoskrnl=list(), wdigest=list())
-extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll")
+knownImageVersions = dict(ntoskrnl=list(), wdigest=list(), ci=list())
+extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll", ci="dll")
 
 def find(key, value):
     for k, v in value.items():
@@ -144,11 +144,15 @@ def extractOffsets(input_file, output_file, mode):
             # check image type (ntoskrnl, wdigest, etc.)
             r = run(["r2", "-c", "iE", "-qq", input_file], capture_output=True)
             for line in r.stdout.decode().splitlines():
+                line = line.lower()
                 if "ntoskrnl.exe" in line:
                     imageType = "ntoskrnl"
                     break
                 elif "wdigest.dll" in line:
                     imageType = "wdigest"
+                    break
+                elif "ci.dll" in line:
+                    imageType = "ci"
                     break
             else:
                 print(f"[*] File {input_file} unrecognized")
@@ -193,6 +197,10 @@ def extractOffsets(input_file, output_file, mode):
                 symbols = [
                 ("g_fParameter_UseLogonCredential",get_symbol_offset), 
                 ("g_IsCredGuardEnabled",get_symbol_offset)
+                ]
+            elif imageType == "ci":
+                symbols = [
+                ("g_CiOptions",get_symbol_offset),
                 ]
                             
                 
@@ -243,18 +251,18 @@ def loadOffsetsFromCSV(loadedVersions, CSVPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('mode', help='ntoskrnl or wdigest. Mode to download and extract offsets for either ntoskrnl or wdigest')
+    parser.add_argument('mode', help='"ntoskrnl", "wdigest" or "ci". Mode to download and extract offsets from either ntoskrnl.exe, wdigest.dll or ci.dll')
     parser.add_argument('-i', '--input', dest='input', required=True,
-                        help='Single file or directory containing ntoskrnl.exe / wdigest.dll to extract offsets from. If in download mode, the PE downloaded from MS symbols servers will be placed in this folder.')
+                        help='Single file or directory containing ntoskrnl.exe / wdigest.dll / ci.dll to extract offsets from. If in download mode, the PE downloaded from MS symbols servers will be placed in this folder.')
     parser.add_argument('-o', '--output', dest='output', 
-                        help='CSV file to write offsets to. If the specified file already exists, only new ntoskrnl versions will be downloaded / analyzed. Defaults to NtoskrnlOffsets.csv / WdigestOffsets.csv in the current folder.')
+                        help='CSV file to write offsets to. If the specified file already exists, only new ntoskrnl versions will be downloaded / analyzed. Defaults to NtoskrnlOffsets.csv / WdigestOffsets.csv / CiOffsets.csv in the current folder.')
     parser.add_argument('-d', '--download', dest='download', action='store_true',
                         help='Flag to download the PE from Microsoft servers using list of versions from winbindex.m417z.com.')
     
     args = parser.parse_args()
     mode = args.mode.lower()
     if mode not in knownImageVersions:
-        print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: "ntoskrnl" and "wdigest"')      
+        print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: "ntoskrnl", "wdigest" and "ci"')
         exit(1)
     
     # check R2 version
@@ -298,6 +306,8 @@ if __name__ == '__main__':
                 output.write('ntoskrnlVersion,PspCreateProcessNotifyRoutineOffset,PspCreateThreadNotifyRoutineOffset,PspLoadImageNotifyRoutineOffset,_PS_PROTECTIONOffset,EtwThreatIntProvRegHandleOffset,EtwRegEntry_GuidEntryOffset,EtwGuidEntry_ProviderEnableInfoOffset,PsProcessType,PsThreadType,CallbackList\n')
             elif mode == "wdigest":
                 output.write('wdigestVersion,g_fParameter_UseLogonCredentialOffset,g_IsCredGuardEnabledOffset\n')
+            elif mode == "ci":
+                output.write('g_CiOptionsOffset\n')
             else:
                 assert False
     # In download mode, an updated list of image versions published will be retrieved from https://winbindex.m417z.com.
