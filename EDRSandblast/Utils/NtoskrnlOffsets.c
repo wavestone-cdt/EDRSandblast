@@ -65,7 +65,7 @@ void SaveNtoskrnlOffsetsToFile(TCHAR* ntoskrnlOffsetFilename) {
     for (int i = 0; i < _SUPPORTED_NTOSKRNL_OFFSETS_END; i++) {
         _ftprintf(offsetFileStream, TEXT(",%llx"), g_ntoskrnlOffsets.ar[i]);
     }
-    _fputts(TEXT(""), offsetFileStream);
+    _fputts(TEXT("\n"), offsetFileStream);
 
     fclose(offsetFileStream);
 }
