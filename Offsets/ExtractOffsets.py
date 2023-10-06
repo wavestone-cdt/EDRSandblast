@@ -59,6 +59,8 @@ def downloadSpecificFile(entry, pe_basename, pe_ext, knownPEVersions, output_fol
         version = entry['fileInfo']['version'].split(' ')[0]
     except:
         version = find('version', entry).split(' ')[0]
+        if version and version.count(".") != 3:
+            version = None
 
     if not version:
         printl(f'[*] Error parsing version', lock)
