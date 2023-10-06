@@ -236,9 +236,6 @@
     <ClInclude Include="Includes\ProcessDumpDirectSyscalls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EDRSandblast.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Includes\CiOffsets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -246,6 +243,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Includes\DriverGDRV.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\PrintFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <Windows.h>
-#include "../EDRSandblast/Includes/UserlandHooks.h"
+
+#include "..\EDRSandblast\Includes\PrintFunctions.h"
+#include "..\EDRSandblast\Includes\UserlandHooks.h"
 
 typedef struct EDRSB_SINGLETONS_t {
     HANDLE NtdllCopyHandle;

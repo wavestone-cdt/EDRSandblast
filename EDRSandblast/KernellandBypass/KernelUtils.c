@@ -2,7 +2,7 @@
 #include <Psapi.h>
 #include <Tchar.h>
 
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
 
 DWORD64 g_NtoskrnlBaseAddress;
 DWORD64 FindNtoskrnlBaseAddress(void) {

@@ -2,9 +2,6 @@
 #include <Windows.h>
 #include <tchar.h>
 
-#include "../EDRSandblast.h"
-#include "SW2_Syscalls.h"
-
 #define ProcessImageFileName 27
 
 DWORD SandGetProcessPID(HANDLE hProcess);

@@ -3,10 +3,10 @@
 #include <dbghelp.h>
 #include <stdio.h>
 
-#include "../EDRSandblast.h"
 #include "FileUtils.h"
 #include "HttpClient.h"
 #include "PEParser.h"
+#include "PrintFunctions.h"
 
 #include "PdbSymbols.h"
 

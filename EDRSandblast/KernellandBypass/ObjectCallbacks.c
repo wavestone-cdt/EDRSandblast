@@ -1,7 +1,6 @@
 #include <Tchar.h>
 #include <Windows.h>
 
-#include "../EDRSandblast.h"
 #include "IsEDRChecks.h"
 #include "PdbSymbols.h"
 #include "NtoskrnlOffsets.h"
@@ -9,6 +8,7 @@
 #include "KernelUtils.h"
 #include "FileVersion.h"
 #include "KernelCallbacks.h"
+#include "PrintFunctions.h"
 
 #include "ObjectCallbacks.h"
 

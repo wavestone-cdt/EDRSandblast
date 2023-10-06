@@ -1,4 +1,11 @@
-#include "../EDRSandblast.h"
+#include <Windows.h>
+#include <aclapi.h>
+#include <Tchar.h>
+#include <stdio.h>
+#include <time.h>
+
+#include "PrintFunctions.h"
+
 #include "WindowsServiceOps.h"
 
 BOOL ServiceAddEveryoneAccess(SC_HANDLE serviceHandle) {

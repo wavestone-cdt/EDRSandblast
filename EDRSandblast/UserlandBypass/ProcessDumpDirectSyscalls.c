@@ -2,6 +2,7 @@
 #include <minidumpapiset.h>
 
 #include "ListUtils.h"
+#include "PrintFunctions.h"
 #include "RemotePEBBrowser.h"
 #include "StringUtils.h"
 #include "SyscallProcessUtils.h"

@@ -9,9 +9,9 @@
 #include <tchar.h>
 #include <stdio.h>
 
-#include "../EDRSandblast.h"
 #include "FileVersion.h"
 #include "PdbSymbols.h"
+#include "PrintFunctions.h"
 
 #include "CiOffsets.h"
 

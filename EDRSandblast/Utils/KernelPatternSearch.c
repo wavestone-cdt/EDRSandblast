@@ -6,9 +6,10 @@
 */
 #include <Windows.h>
 #include <Tchar.h>
+
 #include "KernelMemoryPrimitives.h"
 #include "KernelUtils.h"
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
 
 DWORD64 PatternSearchStartingFromAddress(DWORD64 startAddress, DWORD bytesToScan, DWORD64 pattern, DWORD64 mask) {
     for (DWORD i = 0; i < bytesToScan; i++) {

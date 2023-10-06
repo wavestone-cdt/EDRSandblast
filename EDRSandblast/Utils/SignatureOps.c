@@ -1,5 +1,5 @@
 #include "SignatureOps.h"
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
 
 // Concat in pSigners output the list of Signer(s) signing the specified file on disk.
 SignatureOpsError GetFileSigners(TCHAR* pFilePath, TCHAR* outSigners, size_t* szOutSigners) {

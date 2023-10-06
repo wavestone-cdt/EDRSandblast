@@ -2,9 +2,9 @@
 * Functions that browse the PEB structure instead of relying on GetModuleHandle
 */
 
-#include "../EDRSandblast.h"
 #include "Undoc.h"
 #include "PEBBrowse.h"
+#include "PrintFunctions.h"
 #include <stdio.h>
 
 /*

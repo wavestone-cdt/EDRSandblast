@@ -1,3 +1,9 @@
+#include <Windows.h>
+#include <tchar.h>
+
+#include "SW2_Syscalls.h"
+#include "PrintFunctions.h"
+
 #include "SyscallProcessUtils.h"
 
 // Retrieve a given process PID.

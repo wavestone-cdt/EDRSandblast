@@ -2,7 +2,8 @@
 #include <assert.h>
 #include <tchar.h>
 
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
+
 
 /*
 * "DBUtil_2_3.sys" (SHA256: 0296e2ce999e67c76352613a718e11516fe1b0efc3ffdb8918fc999dd76a73a5)

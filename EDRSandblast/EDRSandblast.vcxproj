@@ -201,13 +201,13 @@
     <ClCompile Include="Utils\WindowsServiceOps.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EDRSandblast.h" />
     <ClInclude Include="Includes\CiOffsets.h" />
     <ClInclude Include="Includes\CredGuard.h" />
     <ClInclude Include="Includes\DriverDBUtil.h" />
     <ClInclude Include="Includes\DriverGDRV.h" />
     <ClInclude Include="Includes\DriverRTCore.h" />
     <ClInclude Include="Includes\KernelDSE.h" />
+    <ClInclude Include="Includes\PrintFunctions.h" />
     <ClInclude Include="Includes\ProcessDumpDirectSyscalls.h" />
     <ClInclude Include="Includes\FileUtils.h" />
     <ClInclude Include="Includes\HttpClient.h" />

@@ -74,12 +74,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)\EDRSandblast\Includes;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)EDRSandblast\Includes;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <TargetName>EDRSandblast</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)\EDRSandblast\Includes;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)EDRSandblast\Includes;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <TargetName>EDRSandblast</TargetName>
   </PropertyGroup>

@@ -8,8 +8,8 @@
 #include <stdio.h>
 
 #include "FileVersion.h"
+#include "PrintFunctions.h"
 #include "PdbSymbols.h"
-#include "../EDRSandblast.h"
 
 #include "NtoskrnlOffsets.h"
 

@@ -1,6 +1,5 @@
 #include "windows.h"
 #include "KernelDSE.h"
-#include "../EDRSandblast.h"
 #include "winternl.h"
 #include "stdio.h" // for printf
 //#include "ntstatus.h"

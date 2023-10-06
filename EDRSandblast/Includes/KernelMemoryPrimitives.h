@@ -1,10 +1,3 @@
-/*
-
---- Kernel memory Read / Write primitives through the vulnerable Micro-Star MSI Afterburner driver.
---- Source and credit: https://github.com/Barakat/CVE-2019-16098/blob/master/CVE-2019-16098.cpp
-
-*/
-
 #pragma once
 
 #include <Windows.h>

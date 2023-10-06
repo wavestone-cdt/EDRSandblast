@@ -6,9 +6,9 @@
 #include <shlwapi.h>
 #include <stdio.h>
 
-#include "../EDRSandblast.h"
 #include "FileUtils.h"
 #include "UserlandHooks.h"
+#include "PrintFunctions.h"
 #include "PEBBrowse.h"
 #include "Undoc.h"
 #include "Syscalls.h"

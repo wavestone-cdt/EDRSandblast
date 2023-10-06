@@ -8,8 +8,8 @@
 #include <minidumpapiset.h>
 #include <tchar.h>
 
-#include "../EDRSandblast.h"
 #include "PEParser.h"
+#include "PrintFunctions.h"
 #include "ProcessDump.h"
 
 BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege) {

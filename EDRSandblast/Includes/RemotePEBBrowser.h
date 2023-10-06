@@ -1,7 +1,6 @@
 #include <Windows.h>
 #include <tchar.h>
 
-#include "../EDRSandblast.h"
 #include "Undoc.h"
 
 typedef struct _MODULE_INFO {

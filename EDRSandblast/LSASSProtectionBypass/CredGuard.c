@@ -4,7 +4,7 @@
 #include <tlhelp32.h>
 #include <Tchar.h>
 
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
 #include "WdigestOffsets.h"
 
 DWORD WINAPI disableCredGuardByPatchingLSASS(void) {

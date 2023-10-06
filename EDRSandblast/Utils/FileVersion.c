@@ -6,7 +6,7 @@
 #include <Tchar.h>
 #include <stdio.h>
 
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
 
 #include "FileVersion.h"
 

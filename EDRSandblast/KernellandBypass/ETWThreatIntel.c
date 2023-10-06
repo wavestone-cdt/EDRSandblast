@@ -8,10 +8,10 @@
 #include <Windows.h>
 #include <Tchar.h>
 
-#include "../EDRSandBlast.h"
 #include "ETWThreatIntel.h"
 #include "KernelMemoryPrimitives.h"
 #include "NtoskrnlOffsets.h"
+#include "PrintFunctions.h"
 
 
 DWORD64 GetEtwThreatInt_ProviderEnableInfoAddress(BOOL verbose) {

@@ -6,9 +6,9 @@
 */
 #include <tchar.h>
 
-#include "../EDRSandblast.h"
 #include "KernelMemoryPrimitives.h"
 #include "NtoskrnlOffsets.h"
+#include "PrintFunctions.h"
 #include "Undoc.h"
 #include "RunAsPPL.h"
 

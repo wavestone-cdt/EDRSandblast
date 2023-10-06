@@ -3,10 +3,12 @@
 * Among other things, reimplements GetProcAddress and the PE relocation process
 */
 
-#include "../EDRSandblast.h"
 #include "PEParser.h"
 #include <stdio.h>
 #include <assert.h>
+
+#include "PrintFunctions.h"
+
 
 IMAGE_SECTION_HEADER* PE_sectionHeader_fromRVA(PE* pe, DWORD rva) {
 	IMAGE_SECTION_HEADER* sectionHeaders = pe->sectionHeaders;

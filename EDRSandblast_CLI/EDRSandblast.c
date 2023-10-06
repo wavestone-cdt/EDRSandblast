@@ -22,6 +22,7 @@
 #include "NtoskrnlOffsets.h"
 #include "ObjectCallbacks.h"
 #include "PEBBrowse.h"
+#include "PrintFunctions.h"
 #include "RunAsPPL.h"
 #include "Syscalls.h"
 #include "Undoc.h"
@@ -30,7 +31,18 @@
 #include "CiOffsets.h"
 #include "KernelDSE.h"
 
-#include "../EDRSandblast/EDRSandblast.h"
+//TODO P1 : implement a "clean" mode that only removes the driver if installed
+//TODO P2 : replace all instances of exit(1) by a clean_exit() function that uninstalls the driver before exiting
+
+typedef enum _START_MODE {
+    dump,
+    cmd,
+    credguard,
+    audit,
+    firewall,
+    load,
+    none
+} START_MODE;
 
 typedef NTSTATUS(NTAPI* NtQueryInformationProcess_f)(
     HANDLE          ProcessHandle,

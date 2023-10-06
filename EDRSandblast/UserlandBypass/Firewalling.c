@@ -3,7 +3,8 @@
 --- Firewall rules to block EDR products from the network (inboud / outbound connections).
 
 */
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
+
 #include "Firewalling.h"
 
 HRESULT FirewallBlockEDRBinaries(fwBlockingRulesList* sFWEntries) {

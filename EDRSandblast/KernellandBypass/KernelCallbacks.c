@@ -7,7 +7,6 @@
 
 #include <Windows.h>
 
-#include "../EDRSandblast.h"
 #include "FileUtils.h"
 #include "FileVersion.h"
 #include "IsEDRChecks.h"
@@ -16,6 +15,7 @@
 #include "NtoskrnlOffsets.h"
 #include "PEParser.h"
 #include "PdbSymbols.h"
+#include "PrintFunctions.h"
 
 #include "KernelCallbacks.h"
 

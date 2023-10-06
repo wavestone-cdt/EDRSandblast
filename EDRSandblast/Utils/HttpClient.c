@@ -4,7 +4,8 @@
 #include <windef.h>
 #include <winhttp.h>
 
-#include "../EDRSandblast.h"
+#include "PrintFunctions.h"
+
 #include "HttpClient.h"
 
 
