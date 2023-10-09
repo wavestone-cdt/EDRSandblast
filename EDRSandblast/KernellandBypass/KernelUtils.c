@@ -20,6 +20,31 @@ DWORD64 FindNtoskrnlBaseAddress(void) {
     return g_NtoskrnlBaseAddress;
 }
 
+
+/*
+* Returns the kernel module's base address, given its name
+*/
+DWORD64 FindKernelModuleAddressByName(_In_ LPTSTR name) {
+    LPVOID drivers[1024] = { 0 };
+    DWORD cbNeeded;
+    DWORD cDrivers = 0;
+    TCHAR szDriver[1024] = { 0 };
+
+    if (EnumDeviceDrivers(drivers, sizeof(drivers), &cbNeeded)) {
+        cDrivers = cbNeeded / sizeof(drivers[0]);
+        for (DWORD i = 0; i < cDrivers; i++) {
+            if (drivers[i] && GetDeviceDriverBaseName(drivers[i], szDriver, _countof(szDriver))) {
+                if (_tcsicmp(szDriver, name) == 0) {
+                    return (DWORD64) drivers[i];
+                }
+            }
+        }
+    }
+    _tprintf_or_not(TEXT("[!] Could not resolve %s kernel module's address\n"), name);
+    return 0;
+}
+
+
 /*
 * Returns the name of the driver where "address" seems to be located
 * Optionnaly, return in "offset" the distance between "address" and the driver base address.

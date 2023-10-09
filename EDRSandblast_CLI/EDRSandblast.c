@@ -724,7 +724,7 @@ Other options:\n\
                         DWORD64 g_CiOptionsAddress = 0;
                         if (IsCiEnabled())
                         {
-                            CiBaseAddress = FindCIBaseAddress(verbose);
+                            CiBaseAddress = FindCIBaseAddress();
                             if (!CiBaseAddress) {
                                 _putts_or_not(TEXT("[-] CI base address not found !\n"));
                             }

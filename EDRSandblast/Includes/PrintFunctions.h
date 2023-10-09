@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdio.h>
+#include <tchar.h>
+
 #define NO_STRINGS 0
 
 #if NO_STRINGS
