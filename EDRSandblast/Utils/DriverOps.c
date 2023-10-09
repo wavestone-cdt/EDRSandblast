@@ -151,7 +151,7 @@ BOOL InstallEvilDriver(TCHAR* driverPath) {
     if (status == 0x00000005) {
         _putts_or_not(TEXT("[!] 0x00000005 - Access Denied when attempting to install the driver - Did you run as administrator?"));
     }
-    _tprintf_or_not(TEXT("[!] The evil service should be manually deleted when you are done with it : \ncmd /c sc stop %s\ncmd /c sc delete %s\n"), GetEvilDriverServiceName());
+    _tprintf_or_not(TEXT("[!] The evil service should be manually deleted when you are done with it: \ncmd /c sc stop %s\ncmd /c sc delete %s\n"), GetEvilDriverServiceName(), GetEvilDriverServiceName());
 
     return status == 0x0;
 }

@@ -24,7 +24,7 @@ union CiOffsets {
     } st;
 
     // array version (usefull for code factoring)
-    DWORD64 ar[1];
+    DWORD64 ar[_SUPPORTED_CI_OFFSETS_END];
 };
 
 union CiOffsets g_ciOffsets;
