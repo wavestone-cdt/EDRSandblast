@@ -799,6 +799,7 @@ Dump options:\n\
                         }
                         else {
                             // CI is already disabled, just load the driver
+                            // TODO FIX : logic error, evil driver is not loadded if DSE is already disabled
                             _putts_or_not(TEXT("[-] CI is already disabled!\n")); // debug print
                         }
                     }
