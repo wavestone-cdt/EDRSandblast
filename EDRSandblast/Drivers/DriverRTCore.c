@@ -2,19 +2,7 @@
 #include <assert.h>
 #include <tchar.h>
 
-#if NO_STRINGS
-#define _putts_or_not(...)
-#define _tprintf_or_not(...)
-#define wprintf_or_not(...)
-#define printf_or_not(...)
-#pragma warning(disable : 4189)
-
-#else
-#define _putts_or_not(...) _putts(__VA_ARGS__)
-#define _tprintf_or_not(...) _tprintf(__VA_ARGS__)
-#define printf_or_not(...) printf(__VA_ARGS__)
-#define wprintf_or_not(...) wprintf(__VA_ARGS__)
-#endif
+#include "PrintFunctions.h"
 
 /*
 * "RTCore64.sys" (SHA256: 01AA278B07B58DC46C84BD0B1B5C8E9EE4E62EA0BF7A695862444AF32E87F1FD)

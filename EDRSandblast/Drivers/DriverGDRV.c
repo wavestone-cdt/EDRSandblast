@@ -1,22 +1,9 @@
 // Details are available here : https://www.secureauth.com/labs/advisories/gigabyte-drivers-elevation-of-privilege-vulnerabilities/
+#include "PrintFunctions.h"
 #include "DriverGDRV.h"
 #include <windows.h>
 #include <assert.h>
 #include <tchar.h>
-
-#if NO_STRINGS
-#define _putts_or_not(...)
-#define _tprintf_or_not(...)
-#define wprintf_or_not(...)
-#define printf_or_not(...)
-#pragma warning(disable : 4189)
-
-#else
-#define _putts_or_not(...) _putts(__VA_ARGS__)
-#define _tprintf_or_not(...) _tprintf(__VA_ARGS__)
-#define printf_or_not(...) printf(__VA_ARGS__)
-#define wprintf_or_not(...) wprintf(__VA_ARGS__)
-#endif
 
 /*
 * "gdrv.sys" (SHA256: 31f4cfb4c71da44120752721103a16512444c13c2ac2d857a7e6f13cb679b427)
