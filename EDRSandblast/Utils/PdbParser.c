@@ -1,5 +1,7 @@
 #include <Windows.h>
 
+// Written from information found here: https://llvm.org/docs/PDB/index.html
+
 typedef DWORD ulittle32_t;
 
 typedef struct SuperBlock_t {

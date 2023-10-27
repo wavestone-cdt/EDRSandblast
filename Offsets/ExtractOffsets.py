@@ -129,33 +129,57 @@ def get_field_offset(symbols_info, field_name):
     else:
         return 0
 
+from pefile import PE, DIRECTORY_ENTRY
 def get_file_version(path):
-    # dump version number using r2
-    r = run(["r2", "-c", "iV", "-qq", path], capture_output=True)
-    for line in r.stdout.decode().splitlines():
-        line = line.strip()
-        if line.startswith("FileVersion:"):
-            return [int(frag) for frag in line.split(" ")[-1].split(".")]
+    pe = PE(path,fast_load=True)
+    pe.parse_data_directories(directories=[DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_RESOURCE']])
+    if not 'VS_FIXEDFILEINFO' in pe.__dict__ or not pe.VS_FIXEDFILEINFO:
+        raise RuntimeError("Version info not found in {pename}")
+    verinfo = pe.VS_FIXEDFILEINFO[0]
+    filever = (verinfo.FileVersionMS >> 16, verinfo.FileVersionMS & 0xFFFF, verinfo.FileVersionLS >> 16, verinfo.FileVersionLS & 0xFFFF)
+    return filever
 
-    print(f'[!] ERROR : failed to extract version from {path}.')
-    raise RuntimeError("get_file_version error")
+# Takes a path to a PE file as argument, download the associated PDB
+# Return True if it succeeded of if the PDB was already present
+def get_pdb(pe_path, verbose=False):
+    pdb_file_path = pe_path.rsplit(".", maxsplit=1)[0] + ".pdb"
+    if not os.path.isfile(pdb_file_path):
+        if verbose: print(f"[*] Downloading missing {pdb_file_path}")
+        pe = PE(pe_path, fast_load=True)
+        pe.parse_data_directories(directories=[DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_DEBUG']])
+        guid_string = f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data1:08X}" + \
+                      f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data2:04X}" + \
+                      f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data3:04X}" + \
+                      f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data4:02X}" + \
+                      f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data5:02X}" + \
+                      pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data6.hex().upper()
+        age_string = f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Age:X}"
+        pdb_filename = pe.DIRECTORY_ENTRY_DEBUG[0].entry.PdbFileName.decode().replace("\x00","")
+        pdb_url = f'https://msdl.microsoft.com/download/symbols/{pdb_filename}/{guid_string}{age_string}/{pdb_filename}'
+        try:
+            pdbContent = get(pdb_url)
+            assert len(pdbContent.content) > 0
+            with open(pdb_file_path, 'wb') as f:
+                f.write(pdbContent.content)
+            if verbose: print(f'[+] Finished download PDB of {pe_path} version (file: {pdb_file_path})!')
+        except Exception as e:
+            print(f'[!] ERROR : Could not download PDB of {pe_path} (URL: {pdb_url}): {str(e)}.')
+            return False
+    return True
 
 def extractOffsets(input_file, output_file, mode):
     if os.path.isfile(input_file):
         try:
             # check image type (ntoskrnl, wdigest, etc.)
-            r = run(["r2", "-c", "iE", "-qq", input_file], capture_output=True)
-            for line in r.stdout.decode().splitlines():
-                line = line.lower()
-                if "ntoskrnl.exe" in line:
-                    imageType = "ntoskrnl"
-                    break
-                elif "wdigest.dll" in line:
-                    imageType = "wdigest"
-                    break
-                elif "ci.dll" in line:
-                    imageType = "ci"
-                    break
+            pe = PE(input_file,fast_load=True)
+            pe.parse_data_directories(directories=[DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_EXPORT']])
+            name = pe.DIRECTORY_ENTRY_EXPORT.name.decode().lower()
+            if "ntoskrnl.exe" in name:
+                imageType = "ntoskrnl"
+            elif "wdigest.dll" in name:
+                imageType = "wdigest"
+            elif "ci.dll" in name:
+                imageType = "ci"
             else:
                 print(f"[*] File {input_file} unrecognized")
                 return 
@@ -179,7 +203,7 @@ def extractOffsets(input_file, output_file, mode):
             
             # print(f'[*] Processing {imageType} version {imageVersion} (file: {input_file})')
             # download the PDB if needed
-            r = run(["r2", "-c", "idpd", "-qq", input_file], capture_output=True)
+            get_pdb(input_file)
             # dump all symbols
             r = run(["r2", "-c", "idpi", "-qq", '-B', '0', input_file], capture_output=True)
             all_symbols_info = [line.strip() for line in r.stdout.decode().splitlines()]
@@ -225,7 +249,7 @@ def extractOffsets(input_file, output_file, mode):
         except Exception as e:
             print(f'[!] ERROR : Could not process file {input_file}.')
             print(f'[!] Error message: {e}')
-            print(f'[!] If error is of the like of "\'NoneType\' object has no attribute \'group\'", kernel callbacks may not be supported by this version.')
+            #print(f'[!] If error is of the like of "\'NoneType\' object has no attribute \'group\'", kernel callbacks may not be supported by this version.')
 
     elif os.path.isdir(input_file):
         print(f'[*] Processing folder: {input_file}')
@@ -249,6 +273,17 @@ def loadOffsetsFromCSV(loadedVersions, CSVPath):
         for peLine in csvReader:
             loadedVersions.append(peLine[0])
 
+def sortOutputFile(csvFile):
+    def lineKey(line):
+        major = int(line.split("_")[1].split("-")[0])
+        minor = int(line.split("-")[1].split(".")[0])
+        return (major, minor)
+    with open(csvFile) as f:
+        header_line = f.readline()
+        content = f.readlines()
+    with open(csvFile, "w") as f:
+        f.write(header_line)
+        f.writelines(sorted(set(content), key=lineKey))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -291,8 +326,6 @@ if __name__ == '__main__':
         except (subprocess.CalledProcessError, FileNotFoundError):
             print('[!] ERROR : On Linux systems, radare2 needs cabextract to be installed to work with PDB.')
             exit(1)
-        if "R2_CURL" not in os.environ:
-            print("WARNING : On Linux systems, radare2 may have trouble to download PDB files. If offsets are reported as 0, export R2_CURL=1 prior to running the script.")
     
     
     # If the output file exists, load the already analyzed image versions.
@@ -324,3 +357,4 @@ if __name__ == '__main__':
     
     # Extract the offsets from the specified file or the folders containing image files. 
     extractOffsets(args.input, args.output, mode)
+    sortOutputFile(args.output)
