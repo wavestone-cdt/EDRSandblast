@@ -887,7 +887,7 @@ Dump options:\n\
         status = UninstallVulnerableDriver();
         if (status == FALSE) {
             _putts_or_not(TEXT("[!] An error occured while attempting to uninstall the vulnerable driver"));
-            _tprintf_or_not(TEXT("[*] The service should be manually deleted: cmd /c sc delete %s\n"), GetDriverServiceName());
+            _tprintf_or_not(TEXT("[*] The service should be manually deleted and the computer restarted. Use: cmd /c sc delete %s\n"), GetDriverServiceName());
             lpExitCode = EXIT_FAILURE;
         }
         else {
