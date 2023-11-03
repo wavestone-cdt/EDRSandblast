@@ -380,10 +380,15 @@ DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath) {
 
     WCHAR FilePath[MAX_PATH] = { 0 };
     const WCHAR prefix[] = L"\\??\\";
-    memcpy_s(FilePath, sizeof(FilePath), prefix, sizeof(prefix));
-    UNICODE_STRING dumpFilePathAsUnicodeStr = { 0 };
-    wcscat_s(FilePath, _countof(FilePath), dumpFilePath);
+    const WCHAR driveLetterPrefix[] = L"C:";
 
+    wcscpy_s(FilePath, _countof(FilePath), prefix);
+    // Check if dumpFilePath already contains a drive letter at the start.
+    if (!(dumpFilePath[1] == L':')) {
+        wcscat_s(FilePath, _countof(FilePath), driveLetterPrefix);
+    }
+    wcscat_s(FilePath, _countof(FilePath), dumpFilePath);
+    UNICODE_STRING dumpFilePathAsUnicodeStr = { 0 };
     getUnicodeStringFromTCHAR(&dumpFilePathAsUnicodeStr, FilePath);
     
     // Create the dump file to validate that the output path is correct beforing accessing the process to dump memory.
