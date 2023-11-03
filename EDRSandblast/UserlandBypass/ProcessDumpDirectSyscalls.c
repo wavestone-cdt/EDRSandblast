@@ -371,13 +371,25 @@ DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath) {
     HANDLE htargetProcess = NULL;
     OBJECT_ATTRIBUTES ObjectAttributesProcess = { 0 };
 
+    HANDLE hToken;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken)) {
+        _tprintf_or_not(TEXT("[-] Unable to open process token. Error : %lu\n"), GetLastError());
+        goto cleanup;
+    }
+    if (SetPrivilege(hToken, L"SeDebugPrivilege", TRUE)) {
+        _tprintf_or_not(TEXT("[+] SeDebugPrivilege enabled\n"));
+    }
+    else {
+        _tprintf_or_not(TEXT("[-] Unable to enable SeDebugPrivilege\n"));
+        goto cleanup;
+    }
+
     status = SandFindProcessPidByName(targetProcessName, &targetProcessPID);
 
     if (!NT_SUCCESS(status) || targetProcessPID == 0) {
         _tprintf_or_not(TEXT("[-] Syscall process dump failed: couldn't find target %s process PID\n"), targetProcessName);
         goto cleanup;
     }
-
     WCHAR FilePath[MAX_PATH] = { 0 };
     const WCHAR prefix[] = L"\\??\\";
     memcpy_s(FilePath, sizeof(FilePath), prefix, sizeof(prefix));
@@ -402,18 +414,7 @@ DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath) {
     InitializeObjectAttributes(&ObjectAttributesProcess, NULL, 0, NULL, NULL);
     CLIENT_ID clientId = { 0 };
     clientId.ProcessId = UlongToHandle(targetProcessPID);
-    HANDLE hToken;
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken)) {
-        _tprintf_or_not(TEXT("[-] Unable to open process token. Error : %lu\n"), GetLastError());
-        goto cleanup;
-    }
-    if (SetPrivilege(hToken, L"SeDebugPrivilege", TRUE)) {
-        _tprintf_or_not(TEXT("[+] SeDebugPrivilege enabled\n"));
-    }
-    else {
-        _tprintf_or_not(TEXT("[-] Unable to enable SeDebugPrivilege\n"));
-        goto cleanup;
-    }
+    
     status = NtOpenProcess(&htargetProcess, PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, &ObjectAttributesProcess, &clientId);
     if (status == STATUS_ACCESS_DENIED) {
         _tprintf_or_not(TEXT("[-] Syscall process dump failed: access denied error while trying to get an handle on the target process (NtOpenProcesserror 0x%x).\n"), status);
