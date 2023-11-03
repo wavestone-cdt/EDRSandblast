@@ -426,6 +426,9 @@ _Ret_notnull_ HOOK* searchHooks(const char* csvFileName) {
         if (dll_name.Buffer == NULL) {
             continue;
         }
+        if (!_wcsnicmp(dll_name.Buffer, L"api-ms", 6)) {
+            continue;
+        }
         WCHAR* moduleName = currentModuleEntry->FullDllName.Buffer;
 
         if (!hooksFoundInLastModule) {
