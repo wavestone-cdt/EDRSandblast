@@ -139,7 +139,7 @@ VOID WriteMemoryPrimitive_RTCore(SIZE_T Size, DWORD64 Address, PVOID Buffer) {
             exit(1);
         }
 
-        DeviceIoControl(GetDriverHandle_RTCore  (),
+        DeviceIoControl(GetDriverHandle_RTCore(),
             RTCORE64_MEMORY_WRITE_CODE,
             &WriteCommand,
             sizeof(WriteCommand),

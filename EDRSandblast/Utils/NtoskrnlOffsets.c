@@ -6,6 +6,7 @@
 */
 #include <tchar.h>
 #include <stdio.h>
+#include <shlwapi.h>
 
 #include "FileVersion.h"
 #include "PrintFunctions.h"
@@ -126,12 +127,10 @@ TCHAR g_ntoskrnlPath[MAX_PATH] = { 0 };
 LPTSTR GetNtoskrnlPath() {
     if (_tcslen(g_ntoskrnlPath) == 0) {
         // Retrieves the system folder (eg C:\Windows\System32).
-        TCHAR systemDirectory[MAX_PATH] = { 0 };
-        GetSystemDirectory(systemDirectory, _countof(systemDirectory));
+        GetSystemDirectory(g_ntoskrnlPath, _countof(g_ntoskrnlPath));
 
         // Compute ntoskrnl.exe path.
-        _tcscat_s(g_ntoskrnlPath, _countof(g_ntoskrnlPath), systemDirectory);
-        _tcscat_s(g_ntoskrnlPath, _countof(g_ntoskrnlPath), TEXT("\\ntoskrnl.exe"));
+        PathAppend(g_ntoskrnlPath, TEXT("\\ntoskrnl.exe"));
     }
     return g_ntoskrnlPath;
 }
