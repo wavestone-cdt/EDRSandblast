@@ -225,7 +225,21 @@ def get_pdb(pe: PE, pe_path, keep_ondisk=True, verbose=False):
             print(f"[!] ERROR : Could not download PDB of {pe_path} (URL: {pdb_url}): {str(e)}.")
             return None, None
     elif os.path.isfile(pdb_file_path):
-        # todo: check the PDB and PE GUID are identical
+        pdb = Pdb(path=pdb_file_path)
+        pe.parse_data_directories(directories=[DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DEBUG"]])
+        guid_string = (
+            f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data1:08x}-"
+            + f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data2:04x}-"
+            + f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data3:04x}-"
+            + f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data4:02x}"
+            + f"{pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data5:02x}-"
+            + pe.DIRECTORY_ENTRY_DEBUG[0].entry.Signature_Data6.hex().lower()
+        )
+        if str(pdb.PDBStream.Guid).lower() != guid_string:
+            print(f"[!] ERROR : PDB {pdb_file_path} does match {pe_path}. Redownloading")
+            del pdb
+            os.remove(pdb_file_path)
+            return get_pdb(pe, pe_path, keep_ondisk, verbose)
         return pdb_file_path, None
 
 
