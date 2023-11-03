@@ -720,7 +720,8 @@ Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, 
 [Maxime MEIGNAN (themaks)](https://github.com/themaks)
 
 ## Thanks to contributors
-[v1k1ngfr](https://github.com/v1k1ngfr): for Driver Signature Enforcement bypass (via `g_CiOptions` patching) and GDRV.sys driver support
+* [v1k1ngfr](https://github.com/v1k1ngfr): for Driver Signature Enforcement bypass (via `g_CiOptions` patching) and GDRV.sys driver support
+* [Windy Bug](https://github.com/0mWindyBug): for a KDP-compatible Driver Signature Enforcement bypass (via *callback swapping*)
 
 
 ## Licence
