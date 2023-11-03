@@ -9,6 +9,7 @@
 #include <tchar.h>
 #include <stdio.h>
 
+#include "FileUtils.h"
 #include "FileVersion.h"
 #include "PdbSymbols.h"
 #include "PrintFunctions.h"
@@ -17,8 +18,48 @@
 
 union CiOffsets g_ciOffsets = { 0 };
 
+BOOL CiOffsetsAreLoaded() {
+    return g_ciOffsets.ar[0] != 0;
+}
+
+
+BOOL LoadCiOffsets(_In_opt_ TCHAR* ciOffsetFilename, BOOL canUseInternet) {
+    if (CiOffsetsAreLoaded()) {
+        //offsets already loaded
+        return TRUE;
+    }
+
+    // load via CSV first
+    if (ciOffsetFilename && FileExists(ciOffsetFilename)) {
+        if (LoadCiOffsetsFromFile(ciOffsetFilename)) {
+            return TRUE;
+        }
+        _putts_or_not(TEXT("[!] Offsets are missing from the CSV for the version of ci in use."));
+    }
+
+    // load via internet then
+    if (canUseInternet) {
+        _putts_or_not(TEXT("[+] Downloading ci related offsets from the MS Symbol Server (will drop a .pdb file in current directory)"));
+#if _DEBUG
+        if (LoadCiOffsetsFromInternet(FALSE)) {
+#else
+        if (LoadCiOffsetsFromInternet(TRUE)) {
+#endif
+            _putts_or_not(TEXT("[+] Downloading offsets succeeded !"));
+            if (ciOffsetFilename && FileExists(ciOffsetFilename)) {
+                _putts_or_not(TEXT("[+] Saving them to the CSV file..."));
+                SaveCiOffsetsToFile(ciOffsetFilename);
+            }
+            return TRUE;
+        }
+        _putts_or_not(TEXT("[-] Downloading offsets from the internet failed !"));
+    }
+
+    return FALSE;
+}
+
 // Return the offsets of CI!g_CiOptions for the specific Windows version in use.
-void LoadCiOffsetsFromFile(TCHAR* ciOffsetFilename) {
+BOOL LoadCiOffsetsFromFile(TCHAR* ciOffsetFilename) {
     LPTSTR ciVersion = GetCiVersion();
     _tprintf_or_not(TEXT("[*] System's ci.dll file version is: %s\n"), ciVersion);
 
@@ -27,7 +68,7 @@ void LoadCiOffsetsFromFile(TCHAR* ciOffsetFilename) {
 
     if (offsetFileStream == NULL) {
         _putts_or_not(TEXT("[!] Ci offsets CSV file not found / invalid. A valid offset file must be specifed!"));
-        return;
+        return FALSE;
     }
 
     TCHAR lineCiVersion[256];
@@ -46,9 +87,10 @@ void LoadCiOffsetsFromFile(TCHAR* ciOffsetFilename) {
         }
     }
     fclose(offsetFileStream);
+    return g_ciOffsets.ar[0] != 0;
 }
 
-void SaveCiOffsetsToFile(TCHAR* ciOffsetFilename) {
+void SaveCiOffsetsToFile(TCHAR * ciOffsetFilename) {
     LPTSTR ciVersion = GetCiVersion();
 
     FILE* offsetFileStream = NULL;
@@ -63,20 +105,22 @@ void SaveCiOffsetsToFile(TCHAR* ciOffsetFilename) {
     for (int i = 0; i < _SUPPORTED_CI_OFFSETS_END; i++) {
         _ftprintf(offsetFileStream, TEXT(",%llx"), g_ciOffsets.ar[i]);
     }
-    _fputts(TEXT(""), offsetFileStream);
+    _ftprintf(offsetFileStream, TEXT("\n"));
 
     fclose(offsetFileStream);
 }
 
 
-void LoadCiOffsetsFromInternet(BOOL delete_pdb) {
+BOOL LoadCiOffsetsFromInternet(BOOL delete_pdb) {
     LPTSTR ciPath = GetCiPath();
     symbol_ctx* sym_ctx = LoadSymbolsFromImageFile(ciPath);
     if (sym_ctx == NULL) {
-        return;
+        return FALSE;
     }
     g_ciOffsets.st.g_CiOptions = GetSymbolOffset(sym_ctx, "g_CiOptions");
+    g_ciOffsets.st.CiValidateImageHeader = GetSymbolOffset(sym_ctx, "CiValidateImageHeader");
     UnloadSymbols(sym_ctx, delete_pdb);
+    return CiOffsetsAreLoaded();
 }
 
 TCHAR g_ciPath[MAX_PATH] = { 0 };

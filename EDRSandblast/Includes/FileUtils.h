@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Windows.h>
+
 PBYTE ReadFullFileW(LPCWSTR fileName);
 
 BOOL FileExistsA(LPCSTR szPath);

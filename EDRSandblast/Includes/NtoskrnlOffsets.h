@@ -11,7 +11,7 @@
 
 
 enum NtoskrnlOffsetType {
-    CREATE_PROCESS_ROUTINE,
+    CREATE_PROCESS_ROUTINE = 0,
     CREATE_THREAD_ROUTINE,
     LOAD_IMAGE_ROUTINE,
     PROTECTION_LEVEL,
@@ -21,6 +21,7 @@ enum NtoskrnlOffsetType {
     PSPROCESSTYPE,
     PSTHREADTYPE,
     OBJECT_TYPE_CALLBACKLIST,
+    SECICALLBACKS,
     _SUPPORTED_NTOSKRNL_OFFSETS_END
 };
 
@@ -47,6 +48,8 @@ union NtoskrnlOffsets {
         DWORD64 psThreadType;
         // ntoskrnl _OBJECT_TYPE's CallbackList symbol offset
         DWORD64 object_type_callbacklist;
+        // ntoskrnl SeCiCallbacks array
+        DWORD64 seCiCallbacks;
     } st;
 
     // array version (usefull for code factoring)
@@ -71,3 +74,5 @@ BOOL NtoskrnlAllKernelCallbacksOffsetsArePresent();
 BOOL NtoskrnlNotifyRoutinesOffsetsArePresent();
 BOOL NtoskrnlEtwtiOffsetsArePresent();
 BOOL NtoskrnlObjectCallbackOffsetsArePresent();
+
+LPTSTR GetNtoskrnlPath();

@@ -76,6 +76,13 @@ TCHAR* FindDriverName(DWORD64 address, _Out_opt_ PDWORD64 offset) {
         return NULL;
     }
 
+    if (minDiff == MAXDWORD64) {
+        if (offset) {
+            *offset = address;
+        }
+        return NULL;
+    }
+
     if (GetDeviceDriverBaseName((LPVOID)(address - minDiff), szDriver, _countof(szDriver))) {
 
         if (offset) {

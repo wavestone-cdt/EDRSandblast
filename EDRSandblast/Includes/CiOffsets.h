@@ -13,14 +13,15 @@
 
 enum CiOffsetType {
     g_CiOptions = 0,
+    CiValidateImageHeader,
     _SUPPORTED_CI_OFFSETS_END
 };
 
 union CiOffsets {
     // structure version of Ci.dll's offsets
     struct {
-        // Ci.dll's g_CiOptions
         DWORD64 g_CiOptions;
+        DWORD64 CiValidateImageHeader;
     } st;
 
     // array version (usefull for code factoring)
@@ -30,8 +31,10 @@ union CiOffsets {
 union CiOffsets g_ciOffsets;
 
 // Return the offsets of CI!g_CiOptions for the specific Windows version in use.
-void LoadCiOffsetsFromFile(TCHAR* CiOffsetFilename);
+BOOL LoadCiOffsets(_In_opt_ TCHAR* ciOffsetFilename, BOOL canUseInternet);
+BOOL CiOffsetsAreLoaded();
+BOOL LoadCiOffsetsFromFile(TCHAR* CiOffsetFilename);
 void SaveCiOffsetsToFile(TCHAR* CiOffsetFilename);
-void LoadCiOffsetsFromInternet(BOOL delete_pdb);
+BOOL LoadCiOffsetsFromInternet(BOOL delete_pdb);
 LPTSTR GetCiVersion();
 LPTSTR GetCiPath();

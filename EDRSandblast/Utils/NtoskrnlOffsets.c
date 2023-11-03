@@ -92,6 +92,7 @@ void LoadNtoskrnlOffsetsFromInternet(BOOL delete_pdb) {
     g_ntoskrnlOffsets.st.psProcessType = GetSymbolOffset(sym_ctx, "PsProcessType");
     g_ntoskrnlOffsets.st.psThreadType = GetSymbolOffset(sym_ctx, "PsThreadType");
     g_ntoskrnlOffsets.st.object_type_callbacklist = GetFieldOffset(sym_ctx, "_OBJECT_TYPE", L"CallbackList");
+    g_ntoskrnlOffsets.st.seCiCallbacks = GetSymbolOffset(sym_ctx, "SeCiCallbacks");
     UnloadSymbols(sym_ctx, delete_pdb);
 }
 

