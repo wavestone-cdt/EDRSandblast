@@ -177,80 +177,105 @@ VOID PE_rebasePE(PE* pe, LPVOID newBaseAddress)
     return;
 }
 
+VOID PE_read(PE* pe, LPCVOID address, SIZE_T size, PVOID buffer) {
+    if (pe->isInAnotherAddressSpace) {
+        ReadProcessMemory(pe->hProcess, address, buffer, size, NULL);
+    }
+    else if (pe->isInKernelLand) {
+        pe->kernel_read((DWORD64) address, buffer, size);
+    } else {
+        memcpy(buffer, address, size);
+    }
+}
+
+#define PE_ReadMemoryType(TYPE) \
+TYPE PE_ ## TYPE ## (PE* pe, LPCVOID address) {\
+    TYPE res;\
+    PE_read(pe, address, sizeof(TYPE), &res);\
+    return res;\
+}
+PE_ReadMemoryType(BYTE);
+PE_ReadMemoryType(WORD);
+PE_ReadMemoryType(DWORD);
+PE_ReadMemoryType(DWORD64);
+
+#define PE_ArrayType(TYPE) \
+TYPE PE_ ## TYPE ## _Array(PE* pe, PVOID address, SIZE_T index) {\
+    return PE_ ## TYPE ## (pe, (PVOID)(((intptr_t)address)+index*sizeof(TYPE)));\
+}
+PE_ArrayType(BYTE);
+PE_ArrayType(WORD);
+PE_ArrayType(DWORD);
+PE_ArrayType(DWORD64);
+
+LPCSTR PE_STR(PE* pe, LPCSTR address) {
+    if (pe->isInAnotherAddressSpace || pe->isInKernelLand) {
+        SIZE_T slen = 16;
+        LPSTR s = calloc(slen, 1);
+        if (s == NULL) {
+            exit(1);
+        }
+        SIZE_T i = 0;
+        do {
+            if (slen <= i) {
+                slen *= 2;
+                LPSTR tmp = realloc(s, slen);
+                if (NULL == tmp) {
+                    exit(1);
+                }
+                s = tmp;
+            }
+            s[i] = PE_BYTE(pe, address + i);
+            i++;
+        } while (s[i - 1] != '\0');
+        return s;
+    }
+    else {
+        return address;
+    }
+}
+
+VOID PE_STR_free(PE* pe, LPCSTR s) {
+    if (pe->isInAnotherAddressSpace || pe->isInKernelLand) {
+        free((PVOID)s);
+    }
+}
+
+
+PE* _PE_create_common(PVOID imageBase, BOOL isMemoryMapped, BOOL isInAnotherAddressSpace, HANDLE hProcess, BOOL isInKernelLand, kernel_read_memory_func ReadPrimitive);
+
+PE* PE_create_from_another_address_space(HANDLE hProcess, PVOID imageBase) {
+    return _PE_create_common(imageBase, TRUE, TRUE, hProcess, FALSE, NULL);
+}
+
 PE* PE_create(PVOID imageBase, BOOL isMemoryMapped) {
+    return _PE_create_common(imageBase, isMemoryMapped, FALSE, INVALID_HANDLE_VALUE, FALSE, NULL);
+}
+
+PE* PE_create_from_kernel(PVOID imageBase, kernel_read_memory_func ReadPrimitive) {
+    return _PE_create_common(imageBase, TRUE, FALSE, INVALID_HANDLE_VALUE, TRUE, ReadPrimitive);
+}
+
+
+PE* _PE_create_common(PVOID imageBase, BOOL isMemoryMapped, BOOL isInAnotherAddressSpace, HANDLE hProcess, BOOL isInKernelLand, kernel_read_memory_func ReadPrimitive) {
     PE* pe = calloc(1, sizeof(PE));
     if (NULL == pe) {
         exit(1);
     }
     pe->isMemoryMapped = isMemoryMapped;
-    pe->isInAnotherAddressSpace = FALSE;
-    pe->hProcess = INVALID_HANDLE_VALUE;
-    pe->dosHeader = imageBase;
-    pe->ntHeader = (IMAGE_NT_HEADERS*)(((PBYTE)imageBase) + pe->dosHeader->e_lfanew);
-    pe->optHeader = &pe->ntHeader->OptionalHeader;
-    if (isMemoryMapped) {
-        pe->baseAddress = imageBase;
-    }
-    else {
-        pe->baseAddress = (PVOID)pe->optHeader->ImageBase;
-    }
-    pe->dataDir = pe->optHeader->DataDirectory;
-    pe->sectionHeaders = (IMAGE_SECTION_HEADER*)(((PBYTE)pe->optHeader) + pe->ntHeader->FileHeader.SizeOfOptionalHeader);
-    DWORD exportRVA = pe->dataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
-    if (exportRVA == 0) {
-        pe->exportDirectory = NULL;
-        pe->exportedNames = NULL;
-        pe->exportedFunctions = NULL;
-        pe->exportedOrdinals = NULL;
-    }
-    else {
-        pe->exportDirectory = PE_RVA_to_Addr(pe, exportRVA);
-        pe->exportedNames = PE_RVA_to_Addr(pe, pe->exportDirectory->AddressOfNames);
-        pe->exportedFunctions = PE_RVA_to_Addr(pe, pe->exportDirectory->AddressOfFunctions);
-        pe->exportedOrdinals = PE_RVA_to_Addr(pe, pe->exportDirectory->AddressOfNameOrdinals);
-        pe->exportedNamesLength = pe->exportDirectory->NumberOfNames;
-    }
-    pe->relocations = NULL;
-    DWORD debugRVA = pe->dataDir[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
-    if (debugRVA == 0) {
-        pe->debugDirectory = NULL;
-    }
-    else {
-        pe->debugDirectory = PE_RVA_to_Addr(pe, debugRVA);
-        if (pe->debugDirectory->Type != IMAGE_DEBUG_TYPE_CODEVIEW) {
-            pe->debugDirectory = NULL;
-        }
-        else {
-            pe->codeviewDebugInfo = PE_RVA_to_Addr(pe, pe->debugDirectory->AddressOfRawData);
-            if (pe->codeviewDebugInfo->signature != *((DWORD*)"RSDS")) {
-                pe->debugDirectory = NULL;
-                pe->codeviewDebugInfo = NULL;
-            }
-        }
-    }
-    return pe;
-}
-
-PE* PE_create_from_another_address_space(HANDLE hProcess, PVOID imageBase) {
-    PE* pe = calloc(1, sizeof(PE));
-    if (NULL == pe) {
-        exit(1);
-    }
-    pe->isMemoryMapped = TRUE;
     pe->hProcess = hProcess;
-    pe->isInAnotherAddressSpace = TRUE;
+    pe->isInAnotherAddressSpace = isInAnotherAddressSpace;
+    pe->isInKernelLand = isInKernelLand;
+    pe->kernel_read = ReadPrimitive;
     pe->baseAddress = imageBase;
     pe->dosHeader = imageBase;
-    DWORD ntHeaderPtrAddress = 0;
-    ReadProcessMemory(hProcess, (LPCVOID)((intptr_t)imageBase + offsetof(IMAGE_DOS_HEADER, e_lfanew)), &ntHeaderPtrAddress, sizeof(ntHeaderPtrAddress), NULL);
+    DWORD ntHeaderPtrAddress = PE_DWORD(pe, &((IMAGE_DOS_HEADER*)imageBase)->e_lfanew);
     pe->ntHeader = (IMAGE_NT_HEADERS*)((intptr_t)pe->baseAddress + ntHeaderPtrAddress);
     pe->optHeader = (IMAGE_OPTIONAL_HEADER*)(&pe->ntHeader->OptionalHeader);
     pe->dataDir = pe->optHeader->DataDirectory;
-    WORD sizeOfOptionnalHeader = 0;
-    ReadProcessMemory(hProcess, &pe->ntHeader->FileHeader.SizeOfOptionalHeader, &sizeOfOptionnalHeader, sizeof(sizeOfOptionnalHeader), NULL);
+    WORD sizeOfOptionnalHeader = PE_WORD(pe, &pe->ntHeader->FileHeader.SizeOfOptionalHeader);
     pe->sectionHeaders = (IMAGE_SECTION_HEADER*)((intptr_t)pe->optHeader + sizeOfOptionnalHeader);
-    DWORD exportRVA = 0;
-    ReadProcessMemory(hProcess, &pe->dataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress, &exportRVA, sizeof(exportRVA), NULL);
+    DWORD exportRVA = PE_DWORD(pe, &pe->dataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
     if (exportRVA == 0) {
         pe->exportDirectory = NULL;
         pe->exportedNames = NULL;
@@ -260,37 +285,32 @@ PE* PE_create_from_another_address_space(HANDLE hProcess, PVOID imageBase) {
     else {
         pe->exportDirectory = PE_RVA_to_Addr(pe, exportRVA);
 
-        DWORD AddressOfNames = 0;
-        ReadProcessMemory(pe->hProcess, &pe->exportDirectory->AddressOfNames, &AddressOfNames, sizeof(AddressOfNames), NULL);
+        DWORD AddressOfNames = PE_DWORD(pe, &pe->exportDirectory->AddressOfNames);
         pe->exportedNames = PE_RVA_to_Addr(pe, AddressOfNames);
 
-        DWORD AddressOfFunctions = 0;
-        ReadProcessMemory(pe->hProcess, &pe->exportDirectory->AddressOfFunctions, &AddressOfFunctions, sizeof(AddressOfFunctions), NULL);
+        DWORD AddressOfFunctions = PE_DWORD(pe, &pe->exportDirectory->AddressOfFunctions);
         pe->exportedFunctions = PE_RVA_to_Addr(pe, AddressOfFunctions);
 
-        DWORD AddressOfNameOrdinals = 0;
-        ReadProcessMemory(pe->hProcess, &pe->exportDirectory->AddressOfNameOrdinals, &AddressOfNameOrdinals, sizeof(AddressOfNameOrdinals), NULL);
+        DWORD AddressOfNameOrdinals = PE_DWORD(pe, &pe->exportDirectory->AddressOfNameOrdinals);
         pe->exportedOrdinals = PE_RVA_to_Addr(pe, AddressOfNameOrdinals);
 
-        ReadProcessMemory(pe->hProcess, &pe->exportDirectory->NumberOfNames, &pe->exportedNamesLength, sizeof(pe->exportedNamesLength), NULL);
+        pe->exportedNamesLength = PE_DWORD(pe, &pe->exportDirectory->NumberOfNames);
     }
     pe->relocations = NULL;
-    DWORD debugRVA = 0;
-    ReadProcessMemory(hProcess, &pe->dataDir[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress, &debugRVA, sizeof(debugRVA), NULL);
+    DWORD debugRVA = PE_DWORD(pe, &pe->dataDir[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress);
     if (debugRVA == 0) {
         pe->debugDirectory = NULL;
     }
     else {
         pe->debugDirectory = PE_RVA_to_Addr(pe, debugRVA);
-        DWORD debugDirectoryType;
-        ReadProcessMemory(hProcess, &pe->debugDirectory->Type, &debugDirectoryType, sizeof(debugDirectoryType), NULL);
+        DWORD debugDirectoryType = PE_DWORD(pe, &pe->debugDirectory->Type);
         if (debugDirectoryType != IMAGE_DEBUG_TYPE_CODEVIEW) {
             pe->debugDirectory = NULL;
         }
         else {
-            pe->codeviewDebugInfo = PE_RVA_to_Addr(pe, pe->debugDirectory->AddressOfRawData);
-            DWORD codeviewDebugInfoSignature;
-            ReadProcessMemory(hProcess, &pe->codeviewDebugInfo->signature, &codeviewDebugInfoSignature, sizeof(pe->codeviewDebugInfo->signature), NULL);
+            DWORD debugDirectoryAddressOfRawData = PE_DWORD(pe, &pe->debugDirectory->AddressOfRawData);
+            pe->codeviewDebugInfo = PE_RVA_to_Addr(pe, debugDirectoryAddressOfRawData);
+            DWORD codeviewDebugInfoSignature = PE_DWORD(pe, &pe->codeviewDebugInfo->signature);
             if (codeviewDebugInfoSignature != *((DWORD*)"RSDS")) {
                 pe->debugDirectory = NULL;
                 pe->codeviewDebugInfo = NULL;
@@ -300,7 +320,7 @@ PE* PE_create_from_another_address_space(HANDLE hProcess, PVOID imageBase) {
     return pe;
 }
 
-
+//TODO : implement the case where the PE is in another address space
 DWORD PE_functionRVA(PE* pe, LPCSTR functionName) {
     IMAGE_EXPORT_DIRECTORY* exportDirectory = pe->exportDirectory;
     LPDWORD exportedNames = pe->exportedNames;
@@ -308,24 +328,37 @@ DWORD PE_functionRVA(PE* pe, LPCSTR functionName) {
     LPWORD exportedNameOrdinals = pe->exportedOrdinals;
 
     DWORD nameOrdinal_low = 0;
-    LPCSTR exportName_low = PE_RVA_to_Addr(pe, exportedNames[nameOrdinal_low]);
-    DWORD nameOrdinal_high = exportDirectory->NumberOfNames;
+    LPCSTR exportName_low = PE_RVA_to_Addr(pe, PE_DWORD_Array(pe, exportedNames, nameOrdinal_low));
+    exportName_low = PE_STR(pe, exportName_low);
+    DWORD nameOrdinal_high = PE_DWORD(pe, &exportDirectory->NumberOfNames);
     DWORD nameOrdinal_mid;
-    LPCSTR exportName_mid;
+    LPCSTR exportName_mid = NULL;
 
     while (nameOrdinal_high - nameOrdinal_low > 1) {
         nameOrdinal_mid = (nameOrdinal_high + nameOrdinal_low) / 2;
-        exportName_mid = PE_RVA_to_Addr(pe, exportedNames[nameOrdinal_mid]);
+        if (exportName_mid) {
+            PE_STR_free(pe, exportName_mid);
+        }
+        exportName_mid = PE_RVA_to_Addr(pe, PE_DWORD_Array(pe, exportedNames, nameOrdinal_mid));
+        exportName_mid = PE_STR(pe, exportName_mid);
+
         if (strcmp(exportName_mid, functionName) > 0) {
             nameOrdinal_high = nameOrdinal_mid;
         }
         else {
             nameOrdinal_low = nameOrdinal_mid;
+            PE_STR_free(pe, exportName_low);
             exportName_low = exportName_mid;
+            exportName_mid = NULL;
         }
     }
-    if (!strcmp(exportName_low, functionName))
-        return exportedFunctions[exportedNameOrdinals[nameOrdinal_low]];
+    if (exportName_mid) {
+        PE_STR_free(pe, exportName_mid);
+    }
+    if (!strcmp(exportName_low, functionName)) {
+        PE_STR_free(pe, exportName_low);
+        return PE_DWORD_Array(pe, exportedFunctions, PE_WORD_Array(pe, exportedNameOrdinals, nameOrdinal_low));
+    }
     return 0;
 }
 
