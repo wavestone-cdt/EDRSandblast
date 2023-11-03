@@ -209,7 +209,8 @@ Dump options:\n\
     TCHAR wdigestOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR ciOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR fltmgrOffsetCSVPath[MAX_PATH] = { 0 };
-    TCHAR processName[] = TEXT("lsass.exe");
+    TCHAR processName[MAX_PATH];
+    _tcscpy_s(processName, _countof(processName), TEXT("lsass.exe"));
     TCHAR outputPath[MAX_PATH] = { 0 };
     BOOL verbose = FALSE;
     BOOL removeVulnDriver = TRUE;
