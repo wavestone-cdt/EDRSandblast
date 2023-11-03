@@ -87,7 +87,7 @@ DWORD SandFindProcessPidByName(TCHAR* targetProcessName, DWORD* pPid) {
     *pPid = 0;
 
     while (*pPid == 0) {
-        status = NtGetNextProcess(hProcess, PROCESS_QUERY_INFORMATION, 0, 0, &hProcess);
+        status = NtGetNextProcess(hProcess, MAXIMUM_ALLOWED, 0, 0, &hProcess);
 
         if (status == STATUS_NO_MORE_ENTRIES) {
             _tprintf_or_not(TEXT("[-] The process '%s' was not found\n"), targetProcessName);
