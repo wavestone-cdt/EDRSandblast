@@ -439,7 +439,7 @@ EDRSB_STATUS Action_DumpProcessByName(_In_ EDRSB_CONTEXT* ctx, _In_ LPWSTR proce
     DWORD ntStatus;
 
     if (usermodeTechnique != -1) {
-        ntStatus = SandMiniDumpWriteDump(processName, outputPath);// , usermodeTechnique);
+        ntStatus = SandMiniDumpWriteDump(processName, outputPath, FALSE, 0);// , usermodeTechnique);
         if (ntStatus != STATUS_SUCCES) {
             _tprintf_or_not(TEXT("[-] Process dump failed: direct syscall MiniDumpWriteDump failed with error 0x%lx!\n"), ntStatus);
             status = EDRSB_FAILURE;

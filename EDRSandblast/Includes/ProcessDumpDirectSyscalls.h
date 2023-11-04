@@ -25,5 +25,5 @@ typedef struct _DUMP_CONTEXT {
     USHORT  ImplementationVersion;
 } DUMP_CONTEXT, * PDUMP_CONTEXT;
 
-DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath);
+DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath, BOOL encrypt, int key);
 DWORD SandMiniDumpWriteDumpFromThread(PVOID* args);
