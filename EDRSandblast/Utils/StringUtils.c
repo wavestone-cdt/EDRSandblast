@@ -31,9 +31,9 @@
 //    return TRUE;
 //}
 
-VOID getUnicodeStringFromTCHAR(OUT PUNICODE_STRING unicodeString, IN WCHAR* wcharString) {
+VOID getUnicodeStringFromWCHAR(OUT PUNICODE_STRING unicodeString, IN WCHAR* wcharString) {
     unicodeString->Buffer = wcharString;
-    unicodeString->Length = (WORD)_tcslen(unicodeString->Buffer) * sizeof(WCHAR);
+    unicodeString->Length = (WORD)wcslen(unicodeString->Buffer) * sizeof(WCHAR);
     unicodeString->MaximumLength = unicodeString->Length + sizeof(WCHAR);
 }
 

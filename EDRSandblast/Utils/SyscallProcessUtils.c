@@ -18,7 +18,7 @@ DWORD SandGetProcessPID(HANDLE hProcess) {
         return 0;
     }
 
-    return (DWORD) basicInformation.UniqueProcessId;
+    return (DWORD)basicInformation.UniqueProcessId;
 }
 
 // Retrieve a given process image (PE full path).
@@ -28,7 +28,7 @@ PUNICODE_STRING SandGetProcessImage(HANDLE hProcess) {
     PUNICODE_STRING ProcessImageBuffer = NULL;
 
     do {
-        ProcessImageBuffer = calloc(ProcessImageLength, sizeof(TCHAR));
+        ProcessImageBuffer = calloc(ProcessImageLength, sizeof(WCHAR));
         if (!ProcessImageBuffer) {
             _tprintf_or_not(TEXT("[-] Couldn't allocate memory for process image\n"));
             return NULL;
@@ -44,50 +44,54 @@ PUNICODE_STRING SandGetProcessImage(HANDLE hProcess) {
     } while (status == STATUS_INFO_LENGTH_MISMATCH);
 
     if (!ProcessImageBuffer) {
-        _tprintf_or_not(TEXT("[-] Failed to retrieve process image\n"));
+        _tprintf_or_not(TEXT("[-] Failed to retrieve process image: %08x\n"), status);
         return NULL;
     }
-    
+
     return ProcessImageBuffer;
 }
 
 // Extract filename from process image full path.
-DWORD SandGetProcessFilename(PUNICODE_STRING ProcessImageUnicodeStr, TCHAR* ImageFileName, DWORD nSize) {
+DWORD SandGetProcessFilename(PUNICODE_STRING ProcessImageUnicodeStr, LPWSTR ImageFileName, DWORD nSize) {
     if (ProcessImageUnicodeStr->Length == 0) {
         return 0;
     }
 
     // Process name will be /binary.exe.
-    TCHAR* ProcessName = _tcsrchr(ProcessImageUnicodeStr->Buffer, TEXT('\\'));
+    WCHAR* ProcessName = wcsrchr(ProcessImageUnicodeStr->Buffer, L'\\');
     if (!ProcessName) {
         return 0;
     }
 
     // Skip the /.
     ProcessName = &ProcessName[1];
-    
-    DWORD ProcessNameLength = (DWORD)_tcslen(ProcessName);
+
+    DWORD ProcessNameLength = (DWORD)wcslen(ProcessName);
     if (ProcessNameLength > nSize) {
         _tprintf_or_not(TEXT("[-] Input buffer size is too small for file name\n"));
         return 0;
     }
-    
-    _tcsncat_s(ImageFileName, nSize, ProcessName, _TRUNCATE);
+
+    wcsncat_s(ImageFileName, nSize, ProcessName, _TRUNCATE);
     return ProcessNameLength;
 }
 
 // Find a process PID using its filename.
-DWORD SandFindProcessPidByName(TCHAR* targetProcessName, DWORD* pPid) {
+DWORD SandFindProcessPidByName(LPCWSTR targetProcessName, DWORD* pPid) {
     DWORD status = STATUS_UNSUCCESSFUL;
     HANDLE hProcess = NULL;
+    HANDLE hOldProcess = NULL;
     PUNICODE_STRING currentProcessImage = NULL;
-    TCHAR* currentProcessName = NULL;
+    LPWSTR currentProcessName = NULL;
     DWORD currentProcessNameSz = 0;
-    
+
     *pPid = 0;
 
     while (*pPid == 0) {
-        status = NtGetNextProcess(hProcess, MAXIMUM_ALLOWED, 0, 0, &hProcess);
+        status = NtGetNextProcess(hOldProcess, MAXIMUM_ALLOWED, 0, 0, &hProcess);
+        if (hOldProcess) {
+            NtClose(hOldProcess);
+        }
 
         if (status == STATUS_NO_MORE_ENTRIES) {
             _tprintf_or_not(TEXT("[-] The process '%s' was not found\n"), targetProcessName);
@@ -99,24 +103,36 @@ DWORD SandFindProcessPidByName(TCHAR* targetProcessName, DWORD* pPid) {
         }
 
         currentProcessImage = SandGetProcessImage(hProcess);
-        currentProcessName = calloc(currentProcessImage->MaximumLength, sizeof(TCHAR));
-        if (!currentProcessName) {
-            _tprintf_or_not(TEXT("[-] Couldn't allocate memory for process filename\n"));
-            return STATUS_UNSUCCESSFUL;
-        }
-        currentProcessNameSz = SandGetProcessFilename(currentProcessImage, currentProcessName, currentProcessImage->MaximumLength);
+        if (currentProcessImage) {
+            currentProcessName = calloc(currentProcessImage->MaximumLength, sizeof(WCHAR));
+            if (!currentProcessName) {
+                _tprintf_or_not(TEXT("[-] Couldn't allocate memory for process filename\n"));
+                return STATUS_UNSUCCESSFUL;
+            }
+            _putws(currentProcessImage->Buffer);
+            currentProcessNameSz = SandGetProcessFilename(currentProcessImage, currentProcessName, currentProcessImage->MaximumLength);
 
-        if (currentProcessNameSz != 0 && !_tcsicmp(targetProcessName, currentProcessName)) {
-            *pPid = SandGetProcessPID(hProcess);
-            break;
-        }
+            if (currentProcessNameSz != 0 && !_tcsicmp(targetProcessName, currentProcessName)) {
+                *pPid = SandGetProcessPID(hProcess);
+                break;
+            }
 
-        free(currentProcessImage);
-        currentProcessImage = NULL;
-        free(currentProcessName);
-        currentProcessName = NULL;
+            free(currentProcessImage);
+            currentProcessImage = NULL;
+            free(currentProcessName);
+            currentProcessName = NULL;
+        }
+        hOldProcess = hProcess;
     }
-
+    if (currentProcessImage) {
+        free(currentProcessImage);
+    }
+    if (currentProcessName) {
+        free(currentProcessName);
+    }
+    if (hProcess) {
+        NtClose(hProcess);
+    }
     if (*pPid) {
         return STATUS_SUCCES;
     }

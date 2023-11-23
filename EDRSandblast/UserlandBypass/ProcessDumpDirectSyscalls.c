@@ -396,7 +396,7 @@ DWORD SandMiniDumpWriteDump(TCHAR* targetProcessName, WCHAR* dumpFilePath) {
     UNICODE_STRING dumpFilePathAsUnicodeStr = { 0 };
     wcscat_s(FilePath, _countof(FilePath), dumpFilePath);
 
-    getUnicodeStringFromTCHAR(&dumpFilePathAsUnicodeStr, FilePath);
+    getUnicodeStringFromWCHAR(&dumpFilePathAsUnicodeStr, FilePath);
     
     // Create the dump file to validate that the output path is correct beforing accessing the process to dump memory.
     InitializeObjectAttributes(&ObjectAttributesDumpFile, &dumpFilePathAsUnicodeStr, OBJ_CASE_INSENSITIVE, NULL, NULL);

@@ -14,3 +14,4 @@ typedef BOOL(WINAPI* _MiniDumpWriteDump)(HANDLE hProcess, DWORD ProcessId, HANDL
 
 DWORD WINAPI dumpProcess(LPTSTR processName, TCHAR* outputDumpFile);
 DWORD WINAPI dumpProcessFromThread(PVOID* args);
+BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege);

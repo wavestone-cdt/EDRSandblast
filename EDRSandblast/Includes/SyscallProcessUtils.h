@@ -8,8 +8,6 @@ DWORD SandGetProcessPID(HANDLE hProcess);
 
 PUNICODE_STRING SandGetProcessImage(HANDLE hProcess);
 
-DWORD SandGetProcessFilename(PUNICODE_STRING ProcessImageUnicodeStr, TCHAR* ImageFileName, DWORD  nSize);
+DWORD SandGetProcessFilename(PUNICODE_STRING ProcessImageUnicodeStr, LPWSTR ImageFileName, DWORD  nSize);
 
-DWORD SandFindProcessPidByName(TCHAR* targetProcessName, DWORD* pPid);
-
-BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege);
+DWORD SandFindProcessPidByName(LPCWSTR targetProcessName, DWORD* pPid);

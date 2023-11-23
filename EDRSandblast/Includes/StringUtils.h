@@ -6,7 +6,7 @@
 #include "Undoc.h"
 #include "time.h"
 
-VOID getUnicodeStringFromTCHAR(OUT PUNICODE_STRING unicodeString, IN WCHAR* tcharString);
+VOID getUnicodeStringFromWCHAR(OUT PUNICODE_STRING unicodeString, IN WCHAR* tcharString);
 
 TCHAR* generateRandomString(TCHAR* str, size_t size);
 TCHAR* allocAndGenerateRandomString(size_t length);
