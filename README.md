@@ -160,6 +160,42 @@ However, performing the disabling / re-enabling (and "malicious" action in-betwe
 enough should be enough to "race" *PatchGuard* (unless you are unlucky and a periodic
 check is performed just at the wrong moment).
 
+### EDR bypass through minifilters' callbacks unlinking
+The Windows Filter Manager system allows an EDR to load a "minifilter" driver and
+register callbacks in order to be notified of I/O operations, such as file opening,
+reading, writing, etc. 
+
+Here is a quick sum-up of different internal structures used by the filter manager:
+- The Filter Manager establishes a "frame" (`_FLTP_FRAME`) as its root structure;
+- A "volume" structure (`_FLT_VOLUME`) is instanciated for each "disk" managed by the
+Filter Manager (can be partitions, shadow copies, or special ones corresponding to
+named pipes or remote file systems);
+- To each registered minifilter driver corresponds a "filter" structure (`_FLT_FILTER`),
+describing various properties such as its supported operations;
+- These minifilters are not all attached to each volume; an "instance" (`_FLT_INSTANCE`)
+structure is created to mark each of the 
+		filter<->volume associations;
+- Minifilters register callback functions that are to be executed before and/or after
+ specific operations (file open, write, read, etc.). These callbacks are described in
+`_CALLBACK_NODE` structures, and can be accessed by different ways:
+  - An array of all `_CALLBACK_NODE`s implemented by an instance of a minifilter
+    can be found in the `_FLT_INSTANCE` structure; the array is indexed by the IRP 
+    "major function" code, a constant representing the operations handled by the 
+    callbacks (`IRP_MJ_CREATE`, `IRP_MJ_READ`, etc.).
+  - Also, all `_CALLBACK_NODE`s implemented by instances linked to a specific volume
+  are regrouped in linked lists, stored in the `_FLT_VOLUME.Callbacks.OperationLists`
+  array indexed by IRP major function codes.
+
+These different structures are browsed by `EDRSandblast` to detect filters that are 
+associated with EDR-related drivers, and the callback nodes containing monitoring 
+functions are enumerated. To disable their effect, the nodes are unlinked from their 
+lists, making them temporarily invisible from the filter manager.
+
+This way, during a specified period, the EDR can be completely unaware of any file 
+operations. A basic example would be the creation of an lsass memory dump file on disk,
+that would not trigger any analysis from the EDR, and thus no detection based on the 
+file itself.
+
 ### EDR bypass through deactivation of the ETW Microsoft-Windows-Threat-Intelligence provider
 
 The `ETW Microsoft-Windows-Threat-Intelligence` provider logs data about the
