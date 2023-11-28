@@ -446,8 +446,8 @@ Dump options:\n\
             PathAppend(ntoskrnlOffsetCSVPath, offsetCSVName);
         }
 
-        _putts_or_not(TEXT("[+] Setting up prerequisites for the kernel read/write primitives..."));
-        // Initialize the global variable containing ntoskrnl.exe Notify Routines', _PS_PROTECTION and ETW TI functions offsets.
+        _putts_or_not(TEXT("[+] Loading required offsets for ntoskrnl.exe..."));
+
         if (FileExists(ntoskrnlOffsetCSVPath)) {
             _putts_or_not(TEXT("[+] Loading kernel related offsets from the CSV file"));
             LoadNtoskrnlOffsetsFromFile(ntoskrnlOffsetCSVPath);
@@ -518,6 +518,7 @@ Dump options:\n\
             _putts_or_not(TEXT("[!] Couldn't allocate memory to enumerate the drivers in Kernel callbacks"));
             return EXIT_FAILURE;
         }
+
         foundNotifyRoutineCallbacks = EnumEDRNotifyRoutineCallbacks(foundEDRDrivers, verbose);
         if (foundNotifyRoutineCallbacks) {
             isSafeToExecutePayloadKernelland = FALSE;

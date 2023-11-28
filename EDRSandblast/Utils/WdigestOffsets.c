@@ -17,7 +17,6 @@
 
 union WdigestOffsets g_wdigestOffsets = { 0 };
 
-// Return the offsets of nt!PspCreateProcessNotifyRoutine, nt!PspCreateThreadNotifyRoutine, nt!PspLoadImageNotifyRoutine, and nt!_PS_PROTECTION for the specific Windows version in use.
 void LoadWdigestOffsetsFromFile(TCHAR* wdigestOffsetFilename) {
     LPTSTR wdigestVersion = GetWdigestVersion();
     _tprintf_or_not(TEXT("[*] System's wdigest.dll file version is: %s\n"), wdigestVersion);
