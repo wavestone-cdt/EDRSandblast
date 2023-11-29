@@ -1,14 +1,16 @@
-imageVersion,g_fParameter_UseLogonCredential,g_IsCredGuardEnabled
+wdigestVersion,g_fParameter_UseLogonCredential,g_IsCredGuardEnabled
 wdigest_10240-16384.dll,35134,0
 wdigest_10240-17184.dll,35144,34ba0
 wdigest_10240-18244.dll,35144,34ba0
 wdigest_10240-18608.dll,35144,34ba0
 wdigest_10240-18638.dll,35144,34ba0
+wdigest_10240-20307.dll,35174,34ba0
 wdigest_10586-0.dll,35db0,35ba8
 wdigest_14393-0.dll,35dc0,35ba8
 wdigest_14393-3024.dll,35dc0,35ba8
 wdigest_14393-3750.dll,35dc0,35ba8
 wdigest_14393-3808.dll,35dc0,35ba8
+wdigest_14393-6451.dll,35de8,35ba8
 wdigest_15063-0.dll,34d8c,34b88
 wdigest_15063-1868.dll,34d8c,34b88
 wdigest_15063-2409.dll,34d8c,34b88
@@ -38,6 +40,7 @@ wdigest_17763-3887.dll,38234,37c08
 wdigest_17763-4011.dll,38234,37c08
 wdigest_17763-4131.dll,38234,37c08
 wdigest_17763-4974.dll,428c4,421b8
+wdigest_17763-5122.dll,428c4,421b8
 wdigest_18362-1.dll,35124,34b88
 wdigest_18362-175.dll,35124,34b88
 wdigest_18362-900.dll,35124,34b88
@@ -56,6 +59,8 @@ wdigest_19041-3505.dll,45a24,452e8
 wdigest_19041-3516.dll,45a14,452e8
 wdigest_19041-3570.dll,45a14,452e8
 wdigest_19041-3636.dll,45a14,452e8
+wdigest_19041-3684.dll,45a24,452e8
+wdigest_19041-3693.dll,45a24,452e8
 wdigest_22000-1.dll,3caa4,3cab0
 wdigest_22000-434.dll,3caa4,3cab0
 wdigest_22000-1030.dll,3caa4,3cab0
@@ -75,3 +80,5 @@ wdigest_22621-2070.dll,4b5ac,4b5b8
 wdigest_22621-2361.dll,4b59c,4b5a8
 wdigest_22621-2506.dll,4b59c,4b5a8
 wdigest_22621-2700.dll,4b59c,4b5a8
+wdigest_22621-2715.dll,4b5ac,4b5b8
+wdigest_22621-2771.dll,4b5ac,4b5b8

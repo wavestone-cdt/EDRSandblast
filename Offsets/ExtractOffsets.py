@@ -17,8 +17,12 @@ THREADS_LIMIT = None
 CSVLock = threading.Lock()
 
 machineType = dict(x86=332, x64=34404)
-knownImageVersions = dict(ntoskrnl=list(), wdigest=list(), ci=list())
-extensions_by_mode = dict(ntoskrnl="exe", wdigest="dll", ci="dll")
+supported_images = ["ntoskrnl.exe", "wdigest.dll", "ci.dll"]
+modes = [image_name.split(".")[0] for image_name in supported_images]
+extensions_by_mode = dict(image_name.split(".") for image_name in supported_images)
+known_image_versions = {mode: list() for mode in modes}
+modes_by_imagename = dict(zip(supported_images, modes))
+csvFilenameByMode = {mode: mode.capitalize() + "Offsets.csv" for mode in modes}
 
 symbols = dict(
     ntoskrnl=[
@@ -43,6 +47,8 @@ symbols = dict(
         ("CiValidateImageHeader", "symbol"),
     ],
 )
+
+symbols_names = {mode: [t[0] if t[-1] == "symbol" else f"{t[0]}_{t[1]}" for t in symbols[mode]] for mode in modes}
 
 
 def find(key: str, d: dict):
@@ -252,12 +258,10 @@ def extractOffsets(input_file, output_file, mode):
             export_directory_rva = export_directory_entry.VirtualAddress
             image_name_rva = pe.get_dword_at_rva(export_directory_rva + 3 * 4)
             name = pe.get_string_at_rva(image_name_rva).decode().lower()
-            if "ntoskrnl.exe" in name:
-                imageType = "ntoskrnl"
-            elif "wdigest.dll" in name:
-                imageType = "wdigest"
-            elif "ci.dll" in name:
-                imageType = "ci"
+            for image_name in supported_images:
+                if image_name in name:
+                    imageType = modes_by_imagename[image_name]
+                    break
             else:
                 print(f"[*] File {input_file} unrecognized")
                 return
@@ -274,7 +278,7 @@ def extractOffsets(input_file, output_file, mode):
             extension = extensions_by_mode[imageType]
             imageVersion = f"{imageType}_{full_version[2]}-{full_version[3]}.{extension}"
 
-            if imageVersion in knownImageVersions[imageType]:
+            if imageVersion in known_image_versions[imageType]:
                 print(f"[*] Skipping known {imageType} version {imageVersion} (file: {input_file})")
                 try:
                     """
@@ -296,7 +300,7 @@ def extractOffsets(input_file, output_file, mode):
                         for part in input_file_basename[len(f"{imageType}_") : -len(f".{extension}")].split("-")
                     )
                     imageVersion = input_file_basename
-                    if imageVersion in knownImageVersions[imageType]:
+                    if imageVersion in known_image_versions[imageType]:
                         return
                     print("\r", end="")  # Not skipping after all
                 except ValueError:
@@ -330,7 +334,7 @@ def extractOffsets(input_file, output_file, mode):
 
             # print("wrote into CSV !")
             del pdb
-            knownImageVersions[imageType].append(imageVersion)
+            known_image_versions[imageType].append(imageVersion)
             print(f"[+] Finished processing of {imageType} {input_file}!")
 
         except PEFormatError as e:
@@ -381,22 +385,25 @@ def sortOutputFile(csvFile):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
+    modes_str = "/".join(known_image_versions)
+    files = " / ".join(modes_by_imagename)
+    csvfiles = " / ".join(csvFilenameByMode.values())
     parser.add_argument(
         "mode",
-        help='"ntoskrnl", "wdigest" or "ci". Mode to download and extract offsets from either ntoskrnl.exe, wdigest.dll or ci.dll',
+        help=f"{modes_str}. Mode to download and extract offsets from either {files}",
     )
     parser.add_argument(
         "-i",
         "--input",
         dest="input",
         required=True,
-        help="Single file or directory containing ntoskrnl.exe / wdigest.dll / ci.dll to extract offsets from. If in download mode, the PE downloaded from MS symbols servers will be placed in this folder.",
+        help=f"Single file or directory containing {files} to extract offsets from. If in download mode, the PE downloaded from MS symbols servers will be placed in this folder.",
     )
     parser.add_argument(
         "-o",
         "--output",
         dest="output",
-        help="CSV file to write offsets to. If the specified file already exists, only new ntoskrnl versions will be downloaded / analyzed. Defaults to NtoskrnlOffsets.csv / WdigestOffsets.csv / CiOffsets.csv in the current folder.",
+        help=f"CSV file to write offsets to. If the specified file already exists, only new ntoskrnl versions will be downloaded / analyzed. Defaults to {csvfiles} in the current folder.",
     )
     parser.add_argument(
         "-d",
@@ -408,20 +415,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     mode = args.mode.lower()
-    if mode not in knownImageVersions:
-        print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: "ntoskrnl", "wdigest" and "ci"')
+    if mode not in known_image_versions:
+        print(f'[!] ERROR : unsupported mode "{args.mode}", supported mode are: {modes}')
         exit(1)
 
     # If the output file exists, load the already analyzed image versions.
     # Otherwise, write CSV headers to the new file.
     if not args.output:
-        args.output = mode.capitalize() + "Offsets.csv"
+        args.output = csvFilenameByMode[mode]
     if os.path.isfile(args.output):
-        loadOffsetsFromCSV(knownImageVersions[mode], args.output)
-        print(f'[+] Loaded {len(knownImageVersions[mode])} known {mode} versions from "{args.output}"')
+        loadOffsetsFromCSV(known_image_versions[mode], args.output)
+        print(f'[+] Loaded {len(known_image_versions[mode])} known {mode} versions from "{args.output}"')
     else:
         with open(args.output, "w") as output:
-            output.write(mode + "Version," + ",".join(elem[0] for elem in symbols[mode]) + "\n")
+            output.write(mode + "Version," + ",".join(elem for elem in symbols_names[mode]) + "\n")
 
     # In download mode, an updated list of image versions published will be retrieved from https://winbindex.m417z.com.
     # The symbols for each version will be downloaded from the Microsoft symbols servers.
@@ -431,7 +438,7 @@ if __name__ == "__main__":
             print("[!] ERROR : in download mode, -i / --input option must specify a folder")
             exit(1)
         extension = extensions_by_mode[mode]
-        downloadPEFileFromMS(mode, extension, knownImageVersions[mode], args.input)
+        downloadPEFileFromMS(mode, extension, known_image_versions[mode], args.input)
 
     # Extract the offsets from the specified file or the folders containing image files.
     extractOffsets(args.input, args.output, mode)
