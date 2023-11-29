@@ -171,11 +171,13 @@
     <ClCompile Include="KernellandBypass\KernelCallbacks.c" />
     <ClCompile Include="KernellandBypass\KernelDSE.c" />
     <ClCompile Include="KernellandBypass\KernelUtils.c" />
+    <ClCompile Include="KernellandBypass\MinifilterCallbacks.c" />
     <ClCompile Include="KernellandBypass\ObjectCallbacks.c" />
     <ClCompile Include="UserlandBypass\Syscalls.c" />
     <ClCompile Include="UserlandBypass\ProcessDumpDirectSyscalls.c" />
     <ClCompile Include="Utils\CiOffsets.c" />
     <ClCompile Include="Utils\FileUtils.c" />
+    <ClCompile Include="Utils\FltmgrOffsets.c" />
     <ClCompile Include="Utils\HttpClient.c" />
     <ClCompile Include="LSASSProtectionBypass\CredGuard.c" />
     <ClCompile Include="LSASSProtectionBypass\RunAsPPL.c" />
@@ -209,7 +211,9 @@
     <ClInclude Include="Includes\DriverDBUtil.h" />
     <ClInclude Include="Includes\DriverGDRV.h" />
     <ClInclude Include="Includes\DriverRTCore.h" />
+    <ClInclude Include="Includes\FltmgrOffsets.h" />
     <ClInclude Include="Includes\KernelDSE.h" />
+    <ClInclude Include="Includes\MinifilterCallbacks.h" />
     <ClInclude Include="Includes\PrintFunctions.h" />
     <ClInclude Include="Includes\PdbParser.h" />
     <ClInclude Include="Includes\ProcessDumpDirectSyscalls.h" />

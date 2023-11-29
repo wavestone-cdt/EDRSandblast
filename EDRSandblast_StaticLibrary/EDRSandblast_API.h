@@ -17,6 +17,7 @@ typedef struct EDRSB_CONTEXT_t {
     BOOL krnlmodeMonitoringEnumDone;
     BOOL foundNotifyRoutineCallbacks;
     BOOL foundObjectCallbacks;
+    BOOL foundMinifilterCallbacks;
     struct FOUND_EDR_CALLBACKS* foundEDRDrivers;
     BOOL isETWTISystemEnabled;
     BOOL isETWTICurrentlyEnabled;
@@ -112,6 +113,12 @@ typedef struct EDRSB_CONFIG_t {
     */
     LPWSTR kernelOffsetFilePath; //TODO : unifier les offsets dans un seul fichier (un json ?) pour �viter de demander � l'utilisateur de passer plusieurs fichiers
 
+    /*
+    * Path of the CSV file that contains the needed offsets for minifilter enum and bypass
+    * If NULL, tries to load FltmgrOffsets.csv
+    * If empty string, disable FltmgrOffsets.csv loading (relies on symbol download every time)
+    */
+    LPWSTR fltmgrOffsetFilePath;
     /*
     * Path of the CSV file that contains the needed offsets for credential guard related operations
     * If NULL, tries to load WdigestOffsets.csv

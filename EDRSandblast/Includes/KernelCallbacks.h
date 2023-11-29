@@ -21,6 +21,7 @@
 enum kernel_callback_type_e {
 	NOTIFY_ROUTINE_CB,
 	OBJECT_CALLBACK,
+	MINIFILTER_CALLBACK,
 };
 struct KRNL_CALLBACK {
 	enum kernel_callback_type_e type;
@@ -34,8 +35,11 @@ struct KRNL_CALLBACK {
 		struct object_callback_t {
 			DWORD64 enable_addr;
 		} object_callback;
+		struct minifilter_callback_t {
+			DWORD64 callback_node;
+		} minifilter_callback;
 	} addresses;
-	DWORD64 callback_func;
+	DWORD64 callback_func; //TODO: reorganize this struct since object callbacks and minifilter callbacks have preoperations and postoperations
 	BOOL removed;
 };
 

@@ -17,7 +17,7 @@ THREADS_LIMIT = None
 CSVLock = threading.Lock()
 
 machineType = dict(x86=332, x64=34404)
-supported_images = ["ntoskrnl.exe", "wdigest.dll", "ci.dll"]
+supported_images = ["ntoskrnl.exe", "wdigest.dll", "ci.dll", "fltmgr.sys"]
 modes = [image_name.split(".")[0] for image_name in supported_images]
 extensions_by_mode = dict(image_name.split(".") for image_name in supported_images)
 known_image_versions = {mode: list() for mode in modes}
@@ -45,6 +45,19 @@ symbols = dict(
     ci=[
         ("g_CiOptions", "symbol"),
         ("CiValidateImageHeader", "symbol"),
+    ],
+    fltmgr=[
+        ("FltGlobals", "symbol"),
+        ("_GLOBALS", "FrameList", "field"),
+        ("_FLT_RESOURCE_LIST_HEAD", "rList", "field"),
+        ("_FLTP_FRAME", "Links", "field"),
+        ("_FLTP_FRAME", "RegisteredFilters", "field"),
+        ("_FLT_OBJECT", "PrimaryLink", "field"),
+        ("_FLT_FILTER", "DriverObject", "field"),
+        ("_FLT_FILTER", "InstanceList", "field"),
+        ("_DRIVER_OBJECT", "DriverInit", "field"),
+        ("_FLT_INSTANCE", "CallbackNodes", "field"),
+        ("_FLT_INSTANCE", "FilterLink", "field"),
     ],
 )
 

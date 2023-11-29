@@ -129,6 +129,12 @@
     <ClCompile Include="Utils\PdbParser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KernellandBypass\MinifilterCallbacks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\FltmgrOffsets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Includes\CredGuard.h">
@@ -252,6 +258,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Includes\PdbParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\MinifilterCallbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Includes\FltmgrOffsets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
