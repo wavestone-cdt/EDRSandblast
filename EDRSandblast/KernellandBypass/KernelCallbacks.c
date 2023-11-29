@@ -25,8 +25,8 @@ DWORD64 GetNotifyRoutineAddress(enum NtoskrnlOffsetType nrt);
 
 BOOL EnumEDRSpecificNotifyRoutineCallbacks(enum NtoskrnlOffsetType notifyRoutineType, struct FOUND_EDR_CALLBACKS* edrCallbacks, BOOL verbose) {
     DWORD64 NotifyRoutineAddress = GetNotifyRoutineAddress(notifyRoutineType);
-    _tprintf_or_not(TEXT("[+] [NotifyRountines]\tEnumerating %s callbacks\n"), notifyRoutineTypeStrs[notifyRoutineType]);
-    if (verbose) { _tprintf_or_not(TEXT("[+] [NotifyRountines]\tPsp%sNotifyRoutine: 0x%I64x\n"), notifyRoutineTypeNames[notifyRoutineType], NotifyRoutineAddress); }
+    _tprintf_or_not(TEXT("[+] [NotifyRoutines]\tEnumerating %s callbacks\n"), notifyRoutineTypeStrs[notifyRoutineType]);
+    if (verbose) { _tprintf_or_not(TEXT("[+] [NotifyRoutines]\tPsp%sNotifyRoutine: 0x%I64x\n"), notifyRoutineTypeNames[notifyRoutineType], NotifyRoutineAddress); }
 
     SIZE_T CurrentEDRCallbacksCount = 0;
     for (int i = 0; i < PSP_MAX_CALLBACKS; ++i) {
@@ -36,7 +36,7 @@ BOOL EnumEDRSpecificNotifyRoutineCallbacks(enum NtoskrnlOffsetType notifyRoutine
             DWORD64 cbFunction = ReadMemoryDWORD64(callback);
             DWORD64 driverOffset;
             TCHAR* driver = FindDriverName(cbFunction, &driverOffset);
-            _tprintf_or_not(TEXT("[+] [NotifyRountines]\t\t%016llx [%s + 0x%llx]\n"), cbFunction, driver, driverOffset);
+            _tprintf_or_not(TEXT("[+] [NotifyRoutines]\t\t%016llx [%s + 0x%llx]\n"), cbFunction, driver, driverOffset);
 
             if (driver && isDriverNameMatchingEDR(driver)) { //TODO : also use certificates to determine if EDR
                 DWORD64 callback_addr = NotifyRoutineAddress + (i * sizeof(DWORD64));
@@ -49,7 +49,7 @@ BOOL EnumEDRSpecificNotifyRoutineCallbacks(enum NtoskrnlOffsetType notifyRoutine
                 newFoundDriver.addresses.notify_routine.type = notifyRoutineType;
                 newFoundDriver.callback_func = cbFunction;
 
-                _tprintf_or_not(TEXT("[+] [NotifyRountines]\t\tFound callback belonging to EDR driver %s"), driver);
+                _tprintf_or_not(TEXT("[+] [NotifyRoutines]\t\tFound callback belonging to EDR driver %s"), driver);
                 if (verbose) {
                     _tprintf_or_not(TEXT(" [callback addr : 0x%I64x | callback struct : 0x%I64x | callback function : 0x%I64x]\n"), callback_addr, callback_struct, cbFunction);
                 }
@@ -58,32 +58,31 @@ BOOL EnumEDRSpecificNotifyRoutineCallbacks(enum NtoskrnlOffsetType notifyRoutine
                 }
                 newFoundDriver.removed = FALSE;
                 
-                edrCallbacks->EDR_CALLBACKS[edrCallbacks->index] = newFoundDriver;
-                edrCallbacks->index++;
+                AddFoundKernelCallback(edrCallbacks, &newFoundDriver);
                 CurrentEDRCallbacksCount++;
             }
         }
     }
 
     if (CurrentEDRCallbacksCount == 0) {
-        _putts_or_not(TEXT("[+] [NotifyRountines]\tNo EDR driver(s) found!"));
+        _putts_or_not(TEXT("[+] [NotifyRoutines]\tNo EDR driver(s) found!"));
     }
     else {
-        _tprintf_or_not(TEXT("[+] [NotifyRountines]\tFound a total of %llu EDR / security products driver(s)\n"), CurrentEDRCallbacksCount);
+        _tprintf_or_not(TEXT("[+] [NotifyRoutines]\tFound a total of %llu EDR / security products driver(s)\n"), CurrentEDRCallbacksCount);
     }
     return CurrentEDRCallbacksCount > 0;
 }
 
 void RemoveOrRestoreSpecificEDRNotifyRoutineCallbacks(enum NtoskrnlOffsetType notifyRoutineType, struct FOUND_EDR_CALLBACKS* edrCallbacks, BOOL remove) {
     TCHAR* action = remove ? TEXT("Removing") : TEXT("Restoring");
-    _tprintf_or_not(TEXT("[+] [NotifyRountines]\t%s %s callbacks\n"), action, notifyRoutineTypeStrs[notifyRoutineType]);
+    _tprintf_or_not(TEXT("[+] [NotifyRoutines]\t%s %s callbacks\n"), action, notifyRoutineTypeStrs[notifyRoutineType]);
 
-    for (DWORD i = 0; i < edrCallbacks->index; ++i) {
+    for (DWORD i = 0; i < edrCallbacks->size; ++i) {
         struct KRNL_CALLBACK* cb = &edrCallbacks->EDR_CALLBACKS[i];
         if (cb->type == NOTIFY_ROUTINE_CB && 
             cb->addresses.notify_routine.type == notifyRoutineType &&
             cb->removed == !remove) {
-            _tprintf_or_not(TEXT("[+] [NotifyRountines]\t%s callback of EDR driver \"%s\" [callback addr: 0x%I64x | callback struct: 0x%I64x | callback function: 0x%I64x]\n"),
+            _tprintf_or_not(TEXT("[+] [NotifyRoutines]\t%s callback of EDR driver \"%s\" [callback addr: 0x%I64x | callback struct: 0x%I64x | callback function: 0x%I64x]\n"),
                 action,
                 cb->driver_name,
                 cb->addresses.notify_routine.callback_struct_addr,
@@ -137,4 +136,19 @@ void RemoveEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
 
 void RestoreEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
     RemoveOrRestoreEDRNotifyRoutineCallbacks(edrCallbacks, FALSE);
+}
+
+//TODO : put "kernel notify routines"-related functions in a KernelNotifyRoutines.c, and only left common "kernel callbacks"-related functions in KernelCallbacks.c
+VOID AddFoundKernelCallback(struct FOUND_EDR_CALLBACKS* foundCallbacks, struct KRNL_CALLBACK* newCallback) {
+    if (foundCallbacks->size == foundCallbacks->max_size) {
+        foundCallbacks->max_size = foundCallbacks->max_size * 2 + 1;
+        PVOID tmp = realloc(foundCallbacks->EDR_CALLBACKS, foundCallbacks->max_size * sizeof(struct KRNL_CALLBACK));
+        if (tmp == NULL) {
+            exit(1);
+        }
+        foundCallbacks->EDR_CALLBACKS = tmp;
+    }
+    foundCallbacks->EDR_CALLBACKS[foundCallbacks->size] = *newCallback;
+    foundCallbacks->size++;
+
 }

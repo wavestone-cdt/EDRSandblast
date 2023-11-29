@@ -1,4 +1,4 @@
-ntoskrnlVersion,PspCreateProcessNotifyRoutine,PspCreateThreadNotifyRoutine,PspLoadImageNotifyRoutine,_EPROCESS,EtwThreatIntProvRegHandle,_ETW_REG_ENTRY,_ETW_GUID_ENTRY,PsProcessType,PsThreadType,_OBJECT_TYPE,SeCiCallbacks
+ntoskrnlVersion,PspCreateProcessNotifyRoutine,PspCreateThreadNotifyRoutine,PspLoadImageNotifyRoutine,_EPROCESS_Protection,EtwThreatIntProvRegHandle,_ETW_REG_ENTRY_GuidEntry,_ETW_GUID_ENTRY_ProviderEnableInfo,PsProcessType,PsThreadType,_OBJECT_TYPE_CallbackList,SeCiCallbacks
 ntoskrnl_10240-16384.exe,35d2e0,35d0e0,35cee0,6aa,0,20,50,3c51e8,3c5200,c8,31ee80
 ntoskrnl_10240-17394.exe,35d420,35d220,35d020,6aa,0,20,50,3c51e8,3c5200,c8,31ef40
 ntoskrnl_10240-17443.exe,35c420,35c220,35c020,6aa,0,20,50,3c41e8,3c4200,c8,31df40
@@ -55,6 +55,7 @@ ntoskrnl_10240-20048.exe,369520,369320,369120,6b2,0,20,50,3cf230,3cf248,c8,32b06
 ntoskrnl_10240-20107.exe,3695a0,3693a0,3691a0,6b2,0,20,50,3cf228,3cf248,c8,32b0a0
 ntoskrnl_10240-20161.exe,369560,369360,369160,6b2,0,20,50,3cf228,3cf248,c8,32b060
 ntoskrnl_10240-20232.exe,369560,369360,369160,6b2,0,20,50,3cf228,3cf248,c8,32b060
+ntoskrnl_10240-20307.exe,369560,369360,369160,6b2,0,20,50,3cf228,3cf248,c8,32b060
 ntoskrnl_10586-0.exe,317180,316f80,316d80,6b2,0,20,50,37f228,37f248,c8,2d8d40
 ntoskrnl_10586-1176.exe,3161c0,315fc0,315dc0,6b2,0,20,50,37e228,37e248,c8,2d7d00
 ntoskrnl_10586-1177.exe,3161c0,315fc0,315dc0,6b2,0,20,50,37e228,37e248,c8,2d7d00
@@ -154,6 +155,7 @@ ntoskrnl_14393-5921.exe,33ce20,33cc20,33ca20,6ca,0,20,50,3a9250,3a9278,c8,2fffa0
 ntoskrnl_14393-5996.exe,33cf20,33cd20,33cb20,6ca,0,20,50,3a9250,3a9278,c8,300080
 ntoskrnl_14393-6085.exe,33cea0,33cca0,33caa0,6ca,0,20,50,3a9250,3a9278,c8,300020
 ntoskrnl_14393-6167.exe,33ce60,33cc60,33ca60,6ca,0,20,50,3a9250,3a9278,c8,300020
+ntoskrnl_14393-6451.exe,33cea0,33cca0,33caa0,6ca,0,20,50,3a9250,3a9278,c8,300040
 ntoskrnl_15063-0.exe,382290,382090,381e90,6ca,341ea8,20,50,3e1f98,3e1fb0,c8,345be0
 ntoskrnl_15063-13.exe,382290,382090,381e90,6ca,341ea8,20,50,3e1f98,3e1fb0,c8,345be0
 ntoskrnl_15063-296.exe,382290,382090,381e90,6ca,341ea8,20,50,3e1f98,3e1fb0,c8,345be0
@@ -433,6 +435,7 @@ ntoskrnl_17763-4644.exe,4d8900,4d8b00,4d8700,6ca,409458,20,60,5402d0,5402f8,c8,4
 ntoskrnl_17763-4737.exe,4d8940,4d8b40,4d8740,6ca,409478,20,60,5412d0,5412f8,c8,40cc40
 ntoskrnl_17763-4851.exe,4d8c00,4d8800,4d8a00,6ca,4094b8,20,60,5412d0,5412f8,c8,40cca0
 ntoskrnl_17763-4974.exe,4d8b40,4d8740,4d8940,6ca,409478,20,60,5402d0,5402f8,c8,40cc60
+ntoskrnl_17763-5122.exe,4d8bc0,4d87c0,4d89c0,6ca,409498,20,60,5402d0,5402f8,c8,40cc80
 ntoskrnl_18362-30.exe,500d60,500960,500b60,6fa,42fa40,20,50,56f390,56f3b8,c8,433200
 ntoskrnl_18362-116.exe,500de0,5009e0,500be0,6fa,42fa48,20,50,56f390,56f3b8,c8,433260
 ntoskrnl_18362-145.exe,500de0,5009e0,500be0,6fa,42f9e8,20,50,56f390,56f3b8,c8,433220
@@ -589,6 +592,7 @@ ntoskrnl_19041-3448.exe,cec460,cec260,cec060,87a,c19858,20,60,cfc410,cfc440,c8,c
 ntoskrnl_19041-3516.exe,cec1a0,cec5a0,cec3a0,87a,c197f8,20,60,cfc410,cfc440,c8,c1d900
 ntoskrnl_19041-3570.exe,cec660,cec460,cec260,87a,c197d8,20,60,cfc410,cfc440,c8,c1d900
 ntoskrnl_19041-3636.exe,cec5e0,cec3e0,cec1e0,87a,c197b8,20,60,cfc410,cfc440,c8,c1d8c0
+ntoskrnl_19041-3693.exe,cec120,cec520,cec320,87a,c19798,20,60,cfc410,cfc440,c8,c1d8e0
 ntoskrnl_22000-194.exe,cf5f40,cf5d40,cf6140,87a,c15d20,20,60,d06890,d068c0,c8,c1b7c0
 ntoskrnl_22000-258.exe,cf5f40,cf5d40,cf6140,87a,c15d20,20,60,d06890,d068c0,c8,c1b7c0
 ntoskrnl_22000-282.exe,cf5f00,cf5d00,cf6100,87a,c163d0,20,60,d06890,d068c0,c8,c1b7e0
@@ -666,3 +670,4 @@ ntoskrnl_22621-2283.exe,d0c440,d0c240,d0c040,87a,c318e0,20,60,d1da18,d1da40,c8,c
 ntoskrnl_22621-2361.exe,d0c510,d0c310,d0c110,87a,c318e0,20,60,d1da18,d1da40,c8,c374c0
 ntoskrnl_22621-2428.exe,d0c610,d0c410,d0c210,87a,c318e0,20,60,d1ea18,d1ea40,c8,c37560
 ntoskrnl_22621-2506.exe,d0c150,d0c550,d0c350,87a,c31880,20,60,d1ea18,d1ea40,c8,c37500
+ntoskrnl_22621-2715.exe,d0c150,d0c550,d0c350,87a,c31880,20,60,d1ea18,d1ea40,c8,c37500

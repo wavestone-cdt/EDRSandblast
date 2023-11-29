@@ -12,27 +12,28 @@
 
 
 enum WdigestOffsetType {
-    g_fParameter_UseLogonCredential = 0,
-    g_IsCredGuardEnabled = 1,
-    _SUPPORTED_WDIGEST_OFFSETS_END
+	g_fParameter_UseLogonCredential = 0,
+	g_IsCredGuardEnabled = 1,
+	_SUPPORTED_WDIGEST_OFFSETS_END
 };
 
 union WdigestOffsets {
-    // structure version of wdigest.dll's offsets
-    struct {
-        // wdigest.dll's g_fParameter_UseLogonCredential
-        DWORD64 g_fParameter_UseLogonCredential;
-        // wdigest.dll's g_IsCredGuardEnabled 
-        DWORD64 g_IsCredGuardEnabled;
-    } st;
+	// structure version of wdigest.dll's offsets
+	struct {
+		// wdigest.dll's g_fParameter_UseLogonCredential
+		DWORD64 g_fParameter_UseLogonCredential;
+		// wdigest.dll's g_IsCredGuardEnabled 
+		DWORD64 g_IsCredGuardEnabled;
+	} st;
 
-    // array version (usefull for code factoring)
-    DWORD64 ar[_SUPPORTED_WDIGEST_OFFSETS_END];
+	// array version (usefull for code factoring)
+	DWORD64 ar[_SUPPORTED_WDIGEST_OFFSETS_END];
 };
 
 union WdigestOffsets g_wdigestOffsets;
 
-// Return the offsets of nt!PspCreateProcessNotifyRoutine, nt!PspCreateThreadNotifyRoutine, nt!PspLoadImageNotifyRoutine, and nt!_PS_PROTECTION for the specific Windows version in use.
+// TODO : create a LoadWdigestOffsets function like LoadCiOffsets
+// TODO2 : find a way to factorize all the copy-pasted code between Ci/Ntoskrnl/Wdigest/FltmgrOffsets
 void LoadWdigestOffsetsFromFile(TCHAR* wdigestOffsetFilename);
 void SaveWdigestOffsetsToFile(TCHAR* wdigestOffsetFilename);
 

