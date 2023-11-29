@@ -58,8 +58,7 @@ BOOL EnumEDRSpecificNotifyRoutineCallbacks(enum NtoskrnlOffsetType notifyRoutine
                 }
                 newFoundDriver.removed = FALSE;
                 
-                edrCallbacks->EDR_CALLBACKS[edrCallbacks->index] = newFoundDriver;
-                edrCallbacks->index++;
+                AddFoundKernelCallback(edrCallbacks, &newFoundDriver);
                 CurrentEDRCallbacksCount++;
             }
         }
@@ -78,7 +77,7 @@ void RemoveOrRestoreSpecificEDRNotifyRoutineCallbacks(enum NtoskrnlOffsetType no
     TCHAR* action = remove ? TEXT("Removing") : TEXT("Restoring");
     _tprintf_or_not(TEXT("[+] [NotifyRoutines]\t%s %s callbacks\n"), action, notifyRoutineTypeStrs[notifyRoutineType]);
 
-    for (DWORD i = 0; i < edrCallbacks->index; ++i) {
+    for (DWORD i = 0; i < edrCallbacks->size; ++i) {
         struct KRNL_CALLBACK* cb = &edrCallbacks->EDR_CALLBACKS[i];
         if (cb->type == NOTIFY_ROUTINE_CB && 
             cb->addresses.notify_routine.type == notifyRoutineType &&
@@ -137,4 +136,19 @@ void RemoveEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
 
 void RestoreEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrCallbacks) {
     RemoveOrRestoreEDRNotifyRoutineCallbacks(edrCallbacks, FALSE);
+}
+
+//TODO : put "kernel notify routines"-related functions in a KernelNotifyRoutines.c, and only left common "kernel callbacks"-related functions in KernelCallbacks.c
+VOID AddFoundKernelCallback(struct FOUND_EDR_CALLBACKS* foundCallbacks, struct KRNL_CALLBACK* newCallback) {
+    if (foundCallbacks->size == foundCallbacks->max_size) {
+        foundCallbacks->max_size = foundCallbacks->max_size * 2 + 1;
+        PVOID tmp = realloc(foundCallbacks->EDR_CALLBACKS, foundCallbacks->max_size * sizeof(struct KRNL_CALLBACK));
+        if (tmp == NULL) {
+            exit(1);
+        }
+        foundCallbacks->EDR_CALLBACKS = tmp;
+    }
+    foundCallbacks->EDR_CALLBACKS[foundCallbacks->size] = *newCallback;
+    foundCallbacks->size++;
+
 }

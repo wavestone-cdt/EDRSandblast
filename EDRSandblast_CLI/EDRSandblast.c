@@ -10,17 +10,19 @@
 #include <assert.h>
 #endif
 
+#include "CiOffsets.h"
 #include "CredGuard.h"
 #include "DriverOps.h"
 #include "FileUtils.h"
 #include "Firewalling.h"
 #include "ETWThreatIntel.h"
 #include "KernelCallbacks.h"
+#include "KernelDSE.h"
 #include "KernelMemoryPrimitives.h"
-#include "ProcessDump.h"
-#include "ProcessDumpDirectSyscalls.h"
 #include "NtoskrnlOffsets.h"
 #include "ObjectCallbacks.h"
+#include "ProcessDump.h"
+#include "ProcessDumpDirectSyscalls.h"
 #include "PEBBrowse.h"
 #include "PrintFunctions.h"
 #include "RunAsPPL.h"
@@ -28,8 +30,6 @@
 #include "Undoc.h"
 #include "UserlandHooks.h"
 #include "WdigestOffsets.h"
-#include "CiOffsets.h"
-#include "KernelDSE.h"
 
 //TODO P1 : implement a "clean" mode that only removes the driver if installed
 //TODO P2 : replace all instances of exit(1) by a clean_exit() function that uninstalls the driver before exiting

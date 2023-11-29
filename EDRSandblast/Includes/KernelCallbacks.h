@@ -19,32 +19,33 @@
 
 //TODO : split notify routines & object callbacks in different files, but keep this base to implement more kernel callbacks types (CMRegisterCallbacks, etc)
 enum kernel_callback_type_e {
-    NOTIFY_ROUTINE_CB,
-    OBJECT_CALLBACK
+	NOTIFY_ROUTINE_CB,
+	OBJECT_CALLBACK,
 };
 struct KRNL_CALLBACK {
-    enum kernel_callback_type_e type;
-    TCHAR const* driver_name;
-    union callback_addr_e {
-        struct notify_routine_t {
-            DWORD64 callback_struct_addr;
-            DWORD64 callback_struct;
-            enum NtoskrnlOffsetType type; //TODO : decorrelate indices in CSV from notify routine types
-        } notify_routine;
-        struct object_callback_t {
-            DWORD64 enable_addr;
-        } object_callback;
-    } addresses;
-    DWORD64 callback_func;
-    BOOL removed;
+	enum kernel_callback_type_e type;
+	TCHAR const* driver_name;
+	union callback_addr_e {
+		struct notify_routine_t {
+			DWORD64 callback_struct_addr;
+			DWORD64 callback_struct;
+			enum NtoskrnlOffsetType type; //TODO : decorrelate indices in CSV from notify routine types
+		} notify_routine;
+		struct object_callback_t {
+			DWORD64 enable_addr;
+		} object_callback;
+	} addresses;
+	DWORD64 callback_func;
+	BOOL removed;
 };
 
 struct FOUND_EDR_CALLBACKS {
-    DWORD64 index;
-    struct KRNL_CALLBACK EDR_CALLBACKS[256];
+	SIZE_T size;
+	SIZE_T max_size;
+	struct KRNL_CALLBACK* EDR_CALLBACKS;
 };
 
-
+VOID AddFoundKernelCallback(struct FOUND_EDR_CALLBACKS* foundCallbacks, struct KRNL_CALLBACK* newCallback);
 
 BOOL isDriverEDR(TCHAR* driver);
 void RestoreEDRNotifyRoutineCallbacks(struct FOUND_EDR_CALLBACKS* edrDrivers);
