@@ -596,10 +596,10 @@ lift this requirement and reduce the tool's footprint.
 
 ## Usage
 
-The vulnerable `RTCore64.sys` driver can be retrieved at:
+The vulnerable `gdrv.sys` driver can be retrieved at:
 
 ```
-http://download-eu2.guru3d.com/afterburner/%5BGuru3D.com%5D-MSIAfterburnerSetup462Beta2.zip
+https://www.loldrivers.io/drivers/2bea1bca-753c-4f09-bc9f-566ab0193f4a/
 ```
 
 ### Quick usage
