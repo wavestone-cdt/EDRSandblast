@@ -517,8 +517,8 @@ dump the `LSASS` process memory, since it "dominates" to `PsProtectedSignerLsa-L
   - leak all system handles using `NtQuerySystemInformation` to find the opened
     handle on the current process, and the address of the current process'
     `EPROCESS` structure in kernel memory.
-  - use the arbitrary read / write vulnerability of the `Micro-Star MSI
-    Afterburner` driver to overwrite the `_PS_PROTECTION` field of the current
+  - use the arbitrary read / write vulnerability of the vulnerable
+    driver to overwrite the `_PS_PROTECTION` field of the current
     process in kernel memory. The offsets of the `_PS_PROTECTION` field
     relative to the `EPROCESS` structure (defined by the `ntoskrnl` version in
     use) are computed in the `NtoskrnlOffsets.csv` file.
@@ -596,16 +596,38 @@ lift this requirement and reduce the tool's footprint.
 
 ## Usage
 
-The vulnerable `gdrv.sys` driver can be retrieved at:
+### Vulnerable drivers
 
-```
-https://www.loldrivers.io/drivers/2bea1bca-753c-4f09-bc9f-566ab0193f4a/
-```
+EDRSandblast publicly implements the support of at least 3 vulnerable driver, `gdrv.sys` (default), 
+`RTCore64.sys` and `DBUtil_2_3.sys`. The driver actually used is decided before compilation
+of the tool (see `#define VULN_DRIVER <driver name>` in `includes/KernelMemoryPrimitive.h`). A copy 
+of the vulnerable driver should be downloaded and provided to EDRSandblast for its kernel operation
+to work.
+
+Tested drivers' hashs are mentionned at the start of each `Driver<name>.c` file that implements the
+kernel memory read and write primitives used by EDRSanblast. Using these hashs, drivers samples can be
+easy found on the Internet, especially on `https://www.loldrivers.io`.
+
+Here is the list of the supported vulnerable drivers along with download links:
+
+| Supported driver | Download link                                                                                                        | SHA256                                                           |
+|------------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| `GDRV.sys`       | [LOLDrivers link](https://github.com/magicsword-io/LOLDrivers/raw/main/drivers/9ab9f3b75a2eb87fafb1b7361be9dfb3.bin) | 31f4cfb4c71da44120752721103a16512444c13c2ac2d857a7e6f13cb679b427 |
+| `RTCore64.sys`   | [LOLDrivers link](https://github.com/magicsword-io/LOLDrivers/raw/main/drivers/2d8e4f38b36c334d0a32a7324832501d.bin) | 01aa278b07b58dc46c84bd0b1b5c8e9ee4e62ea0bf7a695862444af32e87f1fd |
+| `DBUtil_2_3.sys` | [LOLDrivers link](https://github.com/magicsword-io/LOLDrivers/raw/main/drivers/c996d7971c49252c582171d9380360f2.bin) | 0296e2ce999e67c76352613a718e11516fe1b0efc3ffdb8918fc999dd76a73a5 |
+
 
 ### Quick usage
 
 ```
-Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard> [--usermode [--unhook-method <N>]] [--kernelmode] [--dont-unload-driver] [--dont-restore-callbacks] [--driver <RTCore64.sys>] [--service <SERVICE_NAME>] [--nt-offsets <NtoskrnlOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--add-dll <dll name or path>]* [-o | --dump-output <DUMP_FILE>]
+Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | credguard | firewall | load_unsigned_driver>
+[--usermode] [--unhook-method <N>] [--direct-syscalls] [--add-dll <dll name or path>]*
+[--kernelmode] [--dont-unload-driver] [--no-restore]
+    [--nt-offsets <NtoskrnlOffsets.csv>] [--fltmgr-offsets <FltmgrOffsets.csv>] [--wdigest-offsets <WdigestOffsets.csv>] [--ci-offsets <CiOffsets.csv>] [--internet]
+    [--vuln-driver <RTCore64.sys>] [--vuln-service <SERVICE_NAME>]
+    [--unsigned-driver <evil.sys>] [--unsigned-service <SERVICE_NAME>]
+    [--no-kdp]
+[-o | --dump-output <DUMP_FILE>]
 ```
 
 ### Options
@@ -616,64 +638,86 @@ Usage: EDRSandblast.exe [-h | --help] [-v | --verbose] <audit | dump | cmd | cre
 
 Actions mode:
 
-        audit           Display the user-land hooks and / or Kernel callbacks without taking actions.
-        dump            Dump the LSASS process, by default as 'lsass' in the current directory or at the
-                        specified file using -o | --output <DUMP_FILE>.
-        cmd             Open a cmd.exe prompt.
-        credguard       Patch the LSASS process' memory to enable Wdigest cleartext passwords caching even if
-                        Credential Guard is enabled on the host. No kernel-land actions required.
+        audit                     Display the user-land hooks and / or Kernel callbacks without taking actions.
+        dump                      Dump the process specified by --process-name (LSASS process by default), as '<process_name>' in the current directory or at the
+                                  specified file using -o | --output <DUMP_FILE>.
+        cmd                       Open a cmd.exe prompt.
+        credguard                 Patch the LSASS process' memory to enable Wdigest cleartext passwords caching even if
+                                  Credential Guard is enabled on the host. No kernel-land actions required.
+        firewall                  Add Windows firewall rules to block network access for the EDR processes / services.
+        load_unsigned_driver      Load the specified unsigned driver, bypassing Driver Signature Enforcement (DSE).
+                                  WARNING: currently an experimental feature, only works if KDP is not present and enabled.
 
 --usermode              Perform user-land operations (DLL unhooking).
 --kernelmode            Perform kernel-land operations (Kernel callbacks removal and ETW TI disabling).
 
---unhook-method <N>
-   Choose the userland un-hooking technique, from the following:
 
-        1 (Default)     Uses the (probably monitored) NtProtectVirtualMemory function in ntdll to remove all
-                        present userland hooks.
-        2               Constructs a 'unhooked' (i.e. unmonitored) version of NtProtectVirtualMemory, by
-                        allocating an executable trampoline jumping over the hook, and remove all present
-                        userland hooks.
-        3               Searches for an existing trampoline allocated by the EDR itself, to get an 'unhooked'
-                        (i.e. unmonitored) version of NtProtectVirtualMemory, and remove all present userland
-                        hooks.
-        4               Loads an additional version of ntdll library into memory, and use the (hopefully
-                        unmonitored) version of NtProtectVirtualMemory present in this library to remove all
-                        present userland hooks.
-        5               Allocates a shellcode that uses a direct syscall to call NtProtectVirtualMemory,
-                        and uses it to remove all detected hooks
-
-Other options:
-
---dont-unload-driver                    Keep the vulnerable driver installed on the host
-                                        Default to automatically unsinstall the driver.
---dont-restore-callbacks                Do not restore the EDR drivers' Kernel Callbacks that were removed.
-                                        Default to restore the callbacks.
-
---driver <RTCore64.sys>                 Path to the vulnerable driver file.
-                                        Default to 'RTCore64.sys' in the current directory.
---service <SERVICE_NAME>                Name of the vulnerable service to intall / start.
-
---nt-offsets <NtoskrnlOffsets.csv>      Path to the CSV file containing the required ntoskrnl.exe's offsets.
-                                        Default to 'NtoskrnlOffsets.csv' in the current directory.
---wdigest-offsets <WdigestOffsets.csv>  Path to the CSV file containing the required wdigest.dll's offsets
-                                        (only for the 'credguard' mode).
-                                        Default to 'WdigestOffsets.csv' in the current directory.
+Hooking-related options:
 
 --add-dll <dll name or path>            Loads arbitrary libraries into the process' address space, before starting
-                                        anything. This can be useful to audit userland hooking for DLL that are not
+                                        anything.This can be useful to audit userland hooking for DLL that are not
                                         loaded by default by this program. Use this option multiple times to load
                                         multiple DLLs all at once.
                                         Example of interesting DLLs to look at: user32.dll, ole32.dll, crypt32.dll,
                                         samcli.dll, winhttp.dll, urlmon.dll, secur32.dll, shell32.dll...
 
--o | --output <DUMP_FILE>               Output path to the dump file that will be generated by the 'dump' mode.
-                                        Default to 'lsass' in the current directory.
+--unhook-method <N>                     Choose the userland un-hooking technique, from the following:
 
+        0                               Do not perform any unhooking (used for direct syscalls operations).
+        1 (Default)                     Uses the (probably monitored) NtProtectVirtualMemory function in ntdll to remove all
+                                        present userland hooks.
+        2                               Constructs a 'unhooked' (i.e. unmonitored) version of NtProtectVirtualMemory, by                                        allocating an executable trampoline jumping over the hook, and remove all present
+                                        userland hooks.
+        3                               Searches for an existing trampoline allocated by the EDR itself, to get an 'unhooked'
+                                        (i.e. unmonitored) version of NtProtectVirtualMemory, and remove all present userland
+                                        hooks.
+        4                               Loads an additional version of ntdll library into memory, and use the (hopefully                                        unmonitored) version of NtProtectVirtualMemory present in this library to remove all
+                                        present userland hooks.
+        5                               Allocates a shellcode that uses a direct syscall to call NtProtectVirtualMemory,                                        and uses it to remove all detected hooks
+
+--direct-syscalls       Use direct syscalls to dump the selected process memory without unhooking unserland hooks.
+
+
+BYOVD options:
+
+--dont-unload-driver                    Keep the vulnerable driver installed on the host
+                                        Default to automatically unsinstall the driver.
+--no-restore                            Do not restore the EDR drivers' Kernel Callbacks that were removed.
+                                        Default to restore the callbacks.
+--vuln-driver <gdrv.sys>                Path to the vulnerable driver file.
+                                        Default to 'gdrv.sys' in the current directory.
+--vuln-service <SERVICE_NAME>           Name of the vulnerable service to intall / start.
+
+
+Driver sideloading options:
+
+--unsigned-driver <evil.sys>            Path to the unsigned driver file.
+                                        Default to 'evil.sys' in the current directory.
+--unsigned-service <SERVICE_NAME>       Name of the unsigned driver's service to intall / start.
+--no-kdp                                Switch to g_CiOptions patching method for disabling DSE (default is callback swapping).
+
+
+Offset-related options:
+
+--nt-offsets <NtoskrnlOffsets.csv>      Path to the CSV file containing the required ntoskrnl.exe's offsets.
+                                        Default to 'NtoskrnlOffsets.csv' in the current directory.
+--fltmgr-offsets <FltmgrOffsets.csv>    Path to the CSV file containing the required fltmgr.sys's offsets
+                                        Default to 'FltmgrOffsets.csv' in the current directory.
+--wdigest-offsets <WdigestOffsets.csv>  Path to the CSV file containing the required wdigest.dll's offsets
+                                        (only for the 'credguard' mode).
+                                        Default to 'WdigestOffsets.csv' in the current directory.
+--ci-offsets <CiOffsets.csv>            Path to the CSV file containing the required ci.dll's offsets
+                                        (only for the 'load_unsigned_driver' mode).
+                                        Default to 'WdigestOffsets.csv' in the current directory.
 -i | --internet                         Enables automatic symbols download from Microsoft Symbol Server
                                         If a corresponding *Offsets.csv file exists, appends the downloaded offsets to the file for later use
-                                        OpSec warning: downloads and drops on disk a PDB file for ntoskrnl.exe and/or wdigest.dll
+                                        OpSec warning: downloads and drops on disk a PDB file for the corresponding image
 
+Dump options:
+
+-o | --dump-output <DUMP_FILE>          Output path to the dump file that will be generated by the 'dump' mode.
+                                        Default to 'process_name' in the current directory.
+--process-name <NAME>                   File name of the process to dump (defaults to 'lsass.exe')
 ```
 
 ### Build
@@ -756,8 +800,8 @@ Finally, to detect hooking bypass (abusing a trampoline, using direct syscalls, 
 [Maxime MEIGNAN (themaks)](https://github.com/themaks)
 
 ## Thanks to contributors
-* [v1k1ngfr](https://github.com/v1k1ngfr): for Driver Signature Enforcement bypass (via `g_CiOptions` patching) and GDRV.sys driver support
-* [Windy Bug](https://github.com/0mWindyBug): for a KDP-compatible Driver Signature Enforcement bypass (via *callback swapping*) and their major contribution on the minifilter bypass feature
+- [v1k1ngfr](https://github.com/v1k1ngfr): for Driver Signature Enforcement bypass (via `g_CiOptions` patching) and GDRV.sys driver support
+- [Windy Bug](https://github.com/0mWindyBug): for a KDP-compatible Driver Signature Enforcement bypass (via *callback swapping*) and their major contribution on the minifilter bypass feature
 
 
 ## Licence
