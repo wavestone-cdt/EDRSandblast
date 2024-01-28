@@ -42,7 +42,7 @@ TCHAR const* EDR_BINARIES[] = {
    _T("SentinelRemediation.exe"),
    _T("SentinelRemoteShellHost.exe"),
    _T("SentinelScanFromContextMenu.exe"),
-   _T("SentinelServiceHost"),
+   _T("SentinelServiceHost.exe"),
    _T("SentinelStaticEngine.exe"),
    _T("SentinelStaticEngineScanner.exe"),
    _T("SentinelUI.exe"),
