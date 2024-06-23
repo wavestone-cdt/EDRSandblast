@@ -425,7 +425,7 @@ EDRSB_STATUS Krnlmode_RestoreAllMonitoring(_In_ EDRSB_CONTEXT* ctx) {
 
     if (!ctx->config->actions.DontRestoreCallBacks && ctx->foundMinifilterCallbacks) {
         _putts_or_not(TEXT("[+] Restoring EDR's minifilter callbacks..."));
-        EnableEDRProcessAndThreadObjectsCallbacks(ctx->foundEDRDrivers);
+		RestoreEDRMinifilterCallbacks(ctx->foundEDRDrivers);
     }
 
     // Renable the ETW Threat Intel provider.
