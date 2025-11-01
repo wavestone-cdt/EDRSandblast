@@ -19,7 +19,7 @@ BOOL AreProcessAndThreadsObjectsCallbacksSupportEnabled();
 
 //undoc struct strategy
 void EnumAllObjectsCallbacks();
-BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundObjectCallbacks);
+BOOL EnumEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundObjectCallbacks, BOOL includeDisabled);
 void EnableEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundObjectCallbacks);
 void DisableEDRProcessAndThreadObjectsCallbacks(struct FOUND_EDR_CALLBACKS* FoundObjectCallbacks);
 void EnableDisableAllProcessAndThreadObjectsCallbacks(BOOL enable);

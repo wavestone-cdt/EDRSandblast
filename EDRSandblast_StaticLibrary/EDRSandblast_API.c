@@ -319,7 +319,7 @@ EDRSB_STATUS Krnlmode_EnumAllMonitoring(_In_opt_ EDRSB_CONTEXT* ctx) {
         _putts_or_not(TEXT("[+] Check if EDR callbacks are registered on processes and threads handle creation/duplication"));
     }
 
-    foundObjectsCallbacks = EnumEDRProcessAndThreadObjectsCallbacks(foundEDRDrivers);
+    foundObjectsCallbacks = EnumEDRProcessAndThreadObjectsCallbacks(foundEDRDrivers, FALSE);
     if (ctx && foundObjectsCallbacks) {
         ctx->foundObjectCallbacks = TRUE;
     }
